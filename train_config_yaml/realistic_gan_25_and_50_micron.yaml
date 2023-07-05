@@ -1,0 +1,87 @@
+#configuration file
+
+info: 'TRaining realistic gan by loading the pretrained model'
+model_name: 'esrt_gan'
+exp_name: 'esrt_gan_factor_2_gan_Loss_tv_regularizer_all_degradation_25_50_micron'
+project_name: 'transformer_gan'
+wandb: True 
+
+
+#dataset class setting
+train_input_path: '../model_bias_experiment/mri_dataset_50/train'
+train_label_path: '../model_bias_experiment/mri_dataset_25/train'
+train_dictionary_path: '../model_bias_experiment/mri_dataset_50/lr_hr_dictionary.pkl'
+patch_size: 200  # this is the patch size of hr therefore the lr patch size will be hr_patch_size/factor
+lr_patch_size: 100
+factor: 2
+
+
+augment: False
+normalize: True
+
+#training settings
+num_epochs: 2505
+n_freq: 30 # model checkpoint saving frequency
+plot_train_example: True
+train_batch_size: 8
+num_workers: 8
+seed: 547
+d_iter: 1
+
+
+# eval setting
+eval: False
+eval_freq: 100
+eval_batch_size: 1   #set the val batch size to 1 always as we need to claculate the psnr and ssim
+
+
+resume: True
+# if resume True then
+checkpoint_path: 'outputs/esrt_gan/esrt_gan_factor_2_L1_loss_gan_Loss_all_degradation/checkpoints/patch/patch-200/factor_2/epoch_1500_f_2.pth'
+start_epoch: 0
+use_pixel_loss: False
+# gen_loss_type: ['l1']
+# gen_loss_wt: [1.0]
+adversarial_weight: 1.0
+
+
+#to set the save directory
+patch: True
+
+# esrt generator setting
+n_feats: 16
+n_blocks: 1
+kernel_size: 3
+
+# transformer discriminator setting
+dist_patch_size: 10
+in_chans: 1
+num_classes: 1
+embed_dim: 500
+num_heads: 4
+mlp_ratio: 4.
+qkv_bias: False
+qk_scale: None
+drop_rate: 0.
+attn_drop_rate: 0.
+drop_path_rate: 0.
+norm_layer: 'ln'
+depth: 4
+act_layer : 'gelu'
+diff_aug: 'None'
+apply_sigmoid: False
+
+
+#optimizer for generator 
+g_lr: 0.0001
+g_optimizer_type: 'adam'
+g_lr_decay_factor: 0.98
+g_optimizer_betas: (0.99, 0.5)
+g_lr_schedular_step: 30
+
+# optimizer for discriminator
+d_lr: 0.0001
+d_optimizer_type: 'adam'
+d_lr_decay_factor: 0.95
+d_optimizer_betas: (0.99, 0.999)
+d_lr_schedular_step: 30

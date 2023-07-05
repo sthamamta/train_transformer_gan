@@ -1,0 +1,90 @@
+#configuration file
+
+info: 'TRaining realistic gan by loading the pretrained model'
+model_name: 'esrt_gan'
+exp_name: 'esrt_gan_factor_2_realistic_gan(no_tv)_(l1_ssim_tv)_all_degradation'
+project_name: 'transformer_gan'
+wandb: True 
+
+
+#dataset class setting
+train_label_dir: '../model_bias_experiment/mri_dataset_25/train'
+eval_label_dir: '../model_bias_experiment/mri_dataset_25/val'
+patch_size: 200  # this is the patch size of hr therefore the lr patch size will be hr_patch_size/factor
+lr_patch_size: 100
+factor: 2
+
+#bicubic, nearest, bilinear, lanczos,kspace,kspace_gaussian_100,mean_blur,median_blur,hanning,hamming
+downsample_method: ['bicubic','nearest','bilinear','lanczos','kspace','kspace_gaussian_100','hanning', 'hamming']  
+# downsample_method: ['bicubic']  
+augment: True
+normalize: True
+
+#training settings
+num_epochs: 2505
+n_freq: 50 # model checkpoint saving frequency
+plot_train_example: True
+train_batch_size: 8
+num_workers: 8
+seed: 547
+d_iter: 5
+
+
+# eval setting
+eval: False
+eval_freq: 100
+eval_batch_size: 1   #set the val batch size to 1 always as we need to claculate the psnr and ssim
+
+
+resume: True
+# if resume True then
+checkpoint_path: 'outputs/esrt_gan/esrt_factor_2_l1_ssim_tv_regularizer_all_degradation/checkpoints/patch/patch-200/factor_2/epoch_2400_f_2.pth'
+start_epoch: 0
+
+use_pixel_loss: True
+gen_loss_type: ['l1', 'ssim']
+gen_loss_wt: [1.0, 1.0]
+adversarial_weight: 1.0
+
+
+#to set the save directory
+patch: True
+
+# esrt generator setting
+n_feats: 16
+n_blocks: 1
+kernel_size: 3
+
+# transformer discriminator setting
+dist_patch_size: 10
+in_chans: 1
+num_classes: 1
+embed_dim: 500
+num_heads: 4
+mlp_ratio: 4.
+qkv_bias: False
+qk_scale: None
+drop_rate: 0.
+attn_drop_rate: 0.
+drop_path_rate: 0.
+norm_layer: 'ln'
+depth: 2
+act_layer : 'gelu'
+diff_aug: 'None'
+apply_sigmoid: False
+
+#optimizer for generator 
+g_lr: 0.0002
+g_optimizer_type: 'adam'
+g_lr_decay_factor: 0.98
+g_optimizer_betas: (0.99, 0.999)
+g_lr_schedular_step: 200
+
+# optimizer for discriminator
+d_lr: 0.0001
+d_optimizer_type: 'adam'
+d_lr_decay_factor: 0.95
+d_optimizer_betas: (0.99, 0.999)
+d_lr_schedular_step: 200
+
+
