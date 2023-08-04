@@ -27,7 +27,7 @@ if __name__ == "__main__":
     '''get the configuration file'''
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', help="configuration file *.yml", type=str, required=False, 
-    default='train_config_yaml/esrt_train.yaml')
+    default='train_config_yaml/esrt_train1.yaml')
     sys.argv = ['-f']
     opt   = parser.parse_known_args()[0]
 

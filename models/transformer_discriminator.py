@@ -286,6 +286,178 @@ class Discriminator(nn.Module):
 
 
 
+# *************************************** Ranking Classifier *****************************************************************
+
+
+class RankDiscriminator(nn.Module):
+    """ Vision Transformer with support for patch or hybrid CNN input stage
+    """
+    def __init__(self,img_size=200,in_chans=1, num_classes=1, embed_dim= 900,
+                 num_heads=4, mlp_ratio=4., qkv_bias=False, qk_scale=None, drop_rate=0., attn_drop_rate=0.,
+                 drop_path_rate=0.,norm_layer='ln', depth=2, act_layer = 'gelu', patch_size = 10, diff_aug='None', apply_sigmoid=False):
+        super().__init__()
+
+        self.img_size = img_size
+        self.in_chans = in_chans
+        self.num_classes = num_classes
+        self.embed_dim = embed_dim
+        self.num_heads = num_heads
+        self.mlp_ratio = mlp_ratio
+        self.qkv_bias = qkv_bias
+        self.qk_scale= qk_scale
+        self.drop_rate = drop_rate
+        self.attn_drop_rate = attn_drop_rate
+        self.drop_path_rate = drop_path_rate
+        self.norm_layer = norm_layer
+
+        self.num_features =  self.embed_dim = embed_dim
+        
+        self.depth = depth
+        self.act_layer = act_layer
+        self.patch_size = patch_size #patch size to treat each patch as a token
+        self.diff_aug = diff_aug
+
+
+        # if hybrid_backbone is not None:
+        #     self.patch_embed = HybridEmbed(
+        #         hybrid_backbone, img_size=img_size, in_chans=in_chans, embed_dim=embed_dim)
+        # else:
+        self.patch_embed = nn.Conv2d(self.in_chans, self.embed_dim, kernel_size=self.patch_size, stride=self.patch_size, padding=0)
+        num_patches = (img_size // self.patch_size)**2
+
+        self.cls_token = nn.Parameter(torch.zeros(1, 1, self.embed_dim))
+        self.pos_embed = nn.Parameter(torch.zeros(1, num_patches + 1, self.embed_dim))
+        self.pos_drop = nn.Dropout(p=drop_rate)
+        
+        dpr = [x.item() for x in torch.linspace(0, self.drop_path_rate, self.depth)]  # stochastic depth decay rule
+        self.blocks = nn.ModuleList([
+            DisBlock(
+                dim=embed_dim, 
+                num_heads=num_heads, 
+                mlp_ratio=mlp_ratio, 
+                qkv_bias=qkv_bias, 
+                qk_scale=qk_scale,
+                drop=drop_rate, 
+                attn_drop=attn_drop_rate, 
+                drop_path=dpr[i],
+                act_layer=act_layer,
+                norm_layer=norm_layer
+            )
+            for i in range(depth)])
+        
+        self.norm = CustomNorm(self.norm_layer, self.embed_dim)
+        self.head = nn.Linear(self.embed_dim, self.num_classes) if self.num_classes > 0 else nn.Identity()
+
+        trunc_normal_(self.pos_embed, std=.02)
+        trunc_normal_(self.cls_token, std=.02)
+        self.apply(self._init_weights)
+        self.apply_sigmoid = apply_sigmoid
+        self.sig = torch.nn.Sigmoid()
+
+    def _init_weights(self, m):
+        if isinstance(m, nn.Linear):
+            trunc_normal_(m.weight, std=.02)
+            if isinstance(m, nn.Linear) and m.bias is not None:
+                nn.init.constant_(m.bias, 0)
+#         elif isinstance(m, nn.Conv2d):
+#             trunc_normal_(m.weight, std=.02)
+#             if isinstance(m, nn.Conv2d) and m.bias is not None:
+#                 nn.init.constant_(m.bias, 0)
+        elif isinstance(m, nn.LayerNorm):
+            nn.init.constant_(m.bias, 0)
+            nn.init.constant_(m.weight, 1.0)
+
+
+    def forward_features(self, x):
+        if "None" not in self.diff_aug:
+            x = DiffAugment(x, self.diff_aug, True)
+        B = x.shape[0]
+        # print("shape of x before", x.shape)
+        # print("shape of patch embedding", self.patch_embed(x).shape)
+        x = self.patch_embed(x).flatten(2).permute(0,2,1) # flatten featuremap for each channel and aranage into (batch, flatten_featuremap, channel)
+
+        # print("size of x after patch_enbed and flatten", x.shape)
+
+        cls_tokens = self.cls_token.expand(B, -1, -1)  # stole cls_tokens impl from Phil Wang, thanks # create cls token for each image in a batch
+        # print("size of cls token", cls_tokens.shape)
+
+        x = torch.cat((cls_tokens, x), dim=1)
+        # print("size of x after concatenating cls token", x.shape)
+
+        # print("shape of position embedding", self.pos_embed.shape)
+
+        x = x + self.pos_embed
+        x = self.pos_drop(x)
+        for blk in self.blocks:
+            # print("input of each block", x.shape)
+            x = blk(x)
+            # print("output of each block", x.shape)
+
+        x = self.norm(x)
+        # print("shape of x at output", x.shape)
+        return x[:,0] #select all elements along dim 0
+
+    def forward(self, x):
+        x = self.forward_features(x)
+        # print("before passing through head", x.shape)
+        x = self.head(x)
+        if self.apply_sigmoid:
+            print("applying sigmoid")
+            print("before applying", x)
+            x = self.sig(x)
+            print("after applying sigmoid", x)
+        return x
+
+
+    def save(self,model_weights,path,epoch,optimizer_weights=None,save_optimizer=False):
+        if save_optimizer:
+            torch.save({
+                    'epoch': epoch,
+                    'img_size': self.img_size,
+                    'in_chans': self.in_chans,
+                    'num_classes': self.num_classes,
+                    'embed_dim' : self.embed_dim,
+                    'num_heads': self.num_heads,
+                    'mlp_ratio': self.mlp_ratio,
+                    'qkv_bias': self.qkv_bias,
+                    'qk_scale': self.qk_scale,
+                    'drop_rate': self.drop_rate,
+                    'attn_drop_rate': self.attn_drop_rate,
+                    'drop_path_rate': self.drop_path_rate,
+                    'norm_layer': self.norm_layer,
+                    'depth': self.depth,
+                    'act_layer': self.act_layer,
+                    'patch_size': self.patch_size,
+                    'diff_aug': self.diff_aug,
+                    'apply_sigmoid': self.apply_sigmoid,
+                    'model_state_dict': model_weights,
+                    'optimizer_state_dict': optimizer_weights,
+                    }, path) 
+        else:
+            torch.save({
+                    'epoch': epoch,
+                    'img_size': self.img_size,
+                    'in_chans': self.in_chans,
+                    'num_classes': self.num_classes,
+                    'embed_dim' : self.embed_dim,
+                    'num_heads': self.num_heads,
+                    'mlp_ratio': self.mlp_ratio,
+                    'qkv_bias': self.qkv_bias,
+                    'qk_scale': self.qk_scale,
+                    'drop_rate': self.drop_rate,
+                    'attn_drop_rate': self.attn_drop_rate,
+                    'drop_path_rate': self.drop_path_rate,
+                    'norm_layer': self.norm_layer,
+                    'depth': self.depth,
+                    'act_layer': self.act_layer,
+                    'patch_size': self.patch_size,
+                    'diff_aug': self.diff_aug,
+                    'apply_sigmoid': self.apply_sigmoid,
+                    'model_state_dict': model_weights,
+                    }, path)   
+        print("===> Checkpoint saved to {}".format(path))
+
+
 #*******************************************    3D Discriminator    *********************************************************************
 
 class Discriminator3D(nn.Module):

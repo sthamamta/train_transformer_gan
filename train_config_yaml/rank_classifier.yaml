@@ -1,0 +1,57 @@
+#configuration file
+
+info: 'Training discrimiantor network for classification'
+model_name: 'transformer_classifier'
+exp_name: 'transformer_classifier_25_micron_gaussian'
+project_name: 'rank_classifier'
+wandb: True 
+
+
+#dataset class setting
+train_label_dir: '../model_bias_experiment/mri_dataset_25/train'
+patch_size: 200  # this is the patch size of hr therefore the lr patch size will be hr_patch_size/factor
+lr_patch_size: 100
+
+downsample_method: ['kspace_gaussian_125','kspace_gaussian_50','kspace_gaussian_75','kspace_gaussian_100','hr']   
+augment: False
+normalize: True
+
+#training settings
+num_epochs: 3505
+n_freq: 20 # model checkpoint saving frequency
+train_batch_size: 128
+seed: 547
+
+#to set the save directory
+patch: True
+
+
+# transformer discriminator setting
+dist_patch_size: 10
+in_chans: 1
+num_classes: 5
+embed_dim: 500
+num_heads: 4
+mlp_ratio: 4.
+qkv_bias: False
+qk_scale: None
+drop_rate: 0.
+attn_drop_rate: 0.
+drop_path_rate: 0.
+norm_layer: 'ln'
+depth: 4
+act_layer : 'gelu'
+diff_aug: 'None'
+
+apply_sigmoid: False
+
+
+#optimizer for generator 
+lr: 0.0005
+optimizer_type: 'adam'
+lr_decay_factor: 0.98
+optimizer_betas: (0.5, 0.999)
+lr_schedular_step: 200
+
+
+

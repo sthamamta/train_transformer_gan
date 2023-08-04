@@ -15,6 +15,7 @@ patch_size: 200  # this is the patch size of hr therefore the lr patch size will
 lr_patch_size: 100
 factor: 2
 
+gan_loss_type: 'realistic'
 
 augment: False
 normalize: True

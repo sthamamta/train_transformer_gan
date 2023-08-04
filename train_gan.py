@@ -11,8 +11,6 @@ import torch.nn as nn
 from utils.image_quality_assessment import PSNR,SSIM
 import copy
 from utils.logging_metric import LogMetric,create_loss_meters_srdense
-from utils.train_utils import adjust_learning_rate
-from utils.train_epoch import train_epoch_srdense,validate_srdense
 from utils.general import save_configuration_yaml,LogOutputs
 from utils.config import set_outputs_dir,set_training_metric_dir,set_plots_dir
 import torch.optim as optim
@@ -26,7 +24,7 @@ from train_utils.standard_gan import StandardGANTrainer
 from train_utils.lsgan import LSGANTrainer
 from collections import OrderedDict
 
-os.environ["CUDA_VISIBLE_DEVICES"]='0'
+os.environ["CUDA_VISIBLE_DEVICES"]='1'
 
 def clean_opt(opt):
     opt.g_optimizer = None      
@@ -77,7 +75,7 @@ if __name__ == "__main__":
     '''get the configuration file'''
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', help="configuration file *.yml", type=str, required=False, 
-    default='train_config_yaml/realistic_gan.yaml')
+    default='train_config_yaml/ls_gan.yaml')
     sys.argv = ['-f']
     opt   = parser.parse_known_args()[0]
 
@@ -186,7 +184,18 @@ if __name__ == "__main__":
 
     opt.wandb_obj =  wandb
 
-    trainer = RealisticGANTrainer(args=opt,use_pixel_loss=opt.use_pixel_loss)
+    if opt.gan_loss_type == 'standard':
+        print("Running Standard GAN Training")
+        trainer = StandardGANTrainer(args=opt,use_pixel_loss=opt.use_pixel_loss)
+    elif opt.gan_loss_type == 'lsgan':
+        print("Running LS GAN Training")
+        trainer = LSGANTrainer(args=opt,use_pixel_loss=opt.use_pixel_loss)
+    elif opt.gan_loss_type == 'realistic':
+        print("Running Realistic GAN Training")
+        trainer = RealisticGANTrainer(args=opt,use_pixel_loss=opt.use_pixel_loss)
+    else:
+        print( "Gan trainer type {} not implemented".format(opt.gan_loss_type))
+
 
     try:
         trainer.train()

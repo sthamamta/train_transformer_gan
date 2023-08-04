@@ -66,7 +66,7 @@ def load_model(checkpoint_path, device):
             n_blocks=checkpoint['n_blocks'], 
             kernel_size=checkpoint['kernel_size']
             ).to(device=device)
-    print(checkpoint['model_state_dict']['body.0.encoder1.encoder.layer2.conv.bias'])
+    # print(checkpoint['model_state_dict']['body.0.encoder1.encoder.layer2.conv.bias'])
     model_dict = load_state_dict_func(checkpoint['model_state_dict'])
     model.load_state_dict(model_dict,strict=False)
     return model
@@ -79,7 +79,7 @@ if __name__ == "__main__":
     '''get the configuration file'''
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', help="configuration file *.yml", type=str, required=False, 
-    default='train_config_yaml/lsgan_25_and_50_micron.yaml')
+    default='train_config_yaml/standard_gan_25_and_50_micron.yaml')
     sys.argv = ['-f']
     opt   = parser.parse_known_args()[0]
 
@@ -201,9 +201,21 @@ if __name__ == "__main__":
 
     opt.wandb_obj =  wandb
 
-    # trainer = RealisticGANTrainer(args=opt,use_pixel_loss=opt.use_pixel_loss)
-    trainer = LSGANTrainer(args=opt,use_pixel_loss=opt.use_pixel_loss)
+    # # trainer = RealisticGANTrainer(args=opt,use_pixel_loss=opt.use_pixel_loss)
+    # # trainer = LSGANTrainer(args=opt,use_pixel_loss=opt.use_pixel_loss)
     # trainer = StandardGANTrainer(args=opt,use_pixel_loss=opt.use_pixel_loss)
+
+    if opt.gan_loss_type == 'standard':
+        print("Running Standard GAN Training")
+        trainer = StandardGANTrainer(args=opt,use_pixel_loss=opt.use_pixel_loss)
+    elif opt.gan_loss_type == 'lsgan':
+        print("Running LS GAN Training")
+        trainer = LSGANTrainer(args=opt,use_pixel_loss=opt.use_pixel_loss)
+    elif opt.gan_loss_type == 'realistic':
+        print("Running Realistic GAN Training")
+        trainer = RealisticGANTrainer(args=opt,use_pixel_loss=opt.use_pixel_loss)
+    else:
+        print( "Gan trainer type {} not implemented".format(opt.gan_loss_type))
 
     # print(torch.cuda.memory_summary())
     try:

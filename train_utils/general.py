@@ -8,6 +8,8 @@ import wandb
 import json
 import torch.nn as nn
 from scipy import ndimage
+import matplotlib.pyplot as plt
+import cv2
 
 def unpickle(file):
     with open(file, 'rb') as fo:
@@ -222,18 +224,27 @@ class LogOutputs():
         self.labels_list.append(preprocess(labels[0]))
         self.predictions_list.append(preprocess(predictions[0]))
 
+    def append_list_classification(self,epoch,images,labels,predictions): #for appending image and their rank classification
+        self.epoch_list.append(epoch)
+        self.images_list.append(preprocess(images[0]))
+        self.labels_list.append(labels[0])
+        self.predictions_list.append(predictions[0])
+
     def append_list_3d(self,epoch,images,labels,predictions):
         self.epoch_list.append(epoch)
         self.images_list.append(preprocess(images))
         self.labels_list.append(preprocess(labels))
         self.predictions_list.append(preprocess(predictions))
 
-    def log_images(self,columns=["epoch","image", "pred", "label"],wandb=None):
+    def log_images(self,columns=["epoch","image", "pred", "label"],wandb=None, images =True):
         table = wandb.Table(columns=columns)
-        for epoch,img, pred, targ in zip(self.epoch_list,self.images_list,self.predictions_list,self.labels_list):
-            table.add_data(epoch, wandb.Image(img),wandb.Image( pred),wandb.Image(targ))
+        if images:
+            for epoch,img, pred, targ in zip(self.epoch_list,self.images_list,self.predictions_list,self.labels_list):
+                table.add_data(epoch, wandb.Image(img),wandb.Image( pred),wandb.Image(targ))
+        else:
+           for epoch,img, pred, targ in zip(self.epoch_list,self.images_list,self.predictions_list,self.labels_list):
+                table.add_data(epoch, wandb.Image(img),pred,targ) 
         wandb.log({"outputs_table":table}, commit=False)
-
 
 
 class LogMetric(object):
@@ -292,3 +303,79 @@ def hfen_error(original_arr,est_arr,sigma=3):
    hfen = np.sqrt(num/deno)
    return hfen
 
+def forward_chop(model, x, shave=10, min_size=60000):
+    scale = 2   #self.scale[self.idx_scale]
+    n_GPUs = 1    #min(self.n_GPUs, 4)
+    b, c, h, w = x.size()
+    h_half, w_half = h // 2, w // 2
+    h_size, w_size = h_half + shave, w_half + shave
+    lr_list = [
+        x[:, :, 0:h_size, 0:w_size],
+        x[:, :, 0:h_size, (w - w_size):w],
+        x[:, :, (h - h_size):h, 0:w_size],
+        x[:, :, (h - h_size):h, (w - w_size):w]]
+
+    if w_size * h_size < min_size:
+        sr_list = []
+        for i in range(0, 4, n_GPUs):
+            lr_batch = torch.cat(lr_list[i:(i + n_GPUs)], dim=0)
+            sr_batch = model(lr_batch)
+            sr_list.extend(sr_batch.chunk(n_GPUs, dim=0))
+    else:
+        sr_list = [
+            forward_chop(model, patch, shave=shave, min_size=min_size) \
+            for patch in lr_list
+        ]
+
+    h, w = scale * h, scale * w
+    h_half, w_half = scale * h_half, scale * w_half
+    h_size, w_size = scale * h_size, scale * w_size
+    shave *= scale
+
+    output = x.new(b, c, h, w)
+    output[:, :, 0:h_half, 0:w_half] \
+        = sr_list[0][:, :, 0:h_half, 0:w_half]
+    output[:, :, 0:h_half, w_half:w] \
+        = sr_list[1][:, :, 0:h_half, (w_size - w + w_half):w_size]
+    output[:, :, h_half:h, 0:w_half] \
+        = sr_list[2][:, :, (h_size - h + h_half):h_size, 0:w_half]
+    output[:, :, h_half:h, w_half:w] \
+        = sr_list[3][:, :, (h_size - h + h_half):h_size, (w_size - w + w_half):w_size]
+
+    return output
+
+
+
+def save_50_micron_train_example( model = None, epoch=20, plot_dir= 'example_plot'):
+
+    image_path = 'lr_f1_160_z_75.png'
+    images = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
+    images = images/255.
+
+    images = torch.from_numpy(images).float().unsqueeze(0).unsqueeze(0)
+    print("shape of images is", images.shape)
+
+    device = next(model.parameters()).device
+    images = images.to(device)
+
+    with torch.no_grad():
+        out = forward_chop(model, images) #model(im_input)
+        torch.cuda.synchronize()
+
+    # input_image =  images.squeeze().cpu().numpy().astype('float')
+    output_image =  out.detach().squeeze().cpu().numpy().astype('float')
+
+    output_image = (output_image*255).astype('uint8')
+
+
+    image_name = 'image_plot_'+str(epoch)+'.png'
+    image_path = os.path.join(plot_dir, image_name)
+
+    if not os.path.exists(plot_dir):
+        os.makedirs(plot_dir)
+
+    cv2.imwrite(image_path, output_image)
+
+
+if __name__== '__main__':
+    save_50_micron_train_example()

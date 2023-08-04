@@ -14,6 +14,8 @@ patch_size: 200  # this is the patch size of hr therefore the lr patch size will
 lr_patch_size: 100
 factor: 2
 
+gan_loss_type: 'realistic'
+
 #bicubic, nearest, bilinear, lanczos,kspace,kspace_gaussian_100,mean_blur,median_blur,hanning,hamming
 downsample_method: ['bicubic','nearest','bilinear','lanczos','kspace','kspace_gaussian_100','hanning', 'hamming']  
 # downsample_method: ['bicubic']  

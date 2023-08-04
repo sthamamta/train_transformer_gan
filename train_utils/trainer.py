@@ -7,7 +7,81 @@ from loss.ssim_loss import SSIM
 from torch.optim.lr_scheduler import StepLR
 from loss.laplacian_pyramid_loss import LaplacianPyramidLoss
 from loss.tv_regularizer import TVRegularizer
+from loss.rank_loss import RankLoss
 
+
+def forward_chop(model, x, shave=10, min_size=60000):
+    scale = 2   #self.scale[self.idx_scale]
+    n_GPUs = 1    #min(self.n_GPUs, 4)
+    b, c, h, w = x.size()
+    h_half, w_half = h // 2, w // 2
+    h_size, w_size = h_half + shave, w_half + shave
+    lr_list = [
+        x[:, :, 0:h_size, 0:w_size],
+        x[:, :, 0:h_size, (w - w_size):w],
+        x[:, :, (h - h_size):h, 0:w_size],
+        x[:, :, (h - h_size):h, (w - w_size):w]]
+
+    if w_size * h_size < min_size:
+        sr_list = []
+        for i in range(0, 4, n_GPUs):
+            lr_batch = torch.cat(lr_list[i:(i + n_GPUs)], dim=0)
+            sr_batch = model(lr_batch)
+            sr_list.extend(sr_batch.chunk(n_GPUs, dim=0))
+    else:
+        sr_list = [
+            forward_chop(model, patch, shave=shave, min_size=min_size) \
+            for patch in lr_list
+        ]
+
+    h, w = scale * h, scale * w
+    h_half, w_half = scale * h_half, scale * w_half
+    h_size, w_size = scale * h_size, scale * w_size
+    shave *= scale
+
+    output = x.new(b, c, h, w)
+    output[:, :, 0:h_half, 0:w_half] \
+        = sr_list[0][:, :, 0:h_half, 0:w_half]
+    output[:, :, 0:h_half, w_half:w] \
+        = sr_list[1][:, :, 0:h_half, (w_size - w + w_half):w_size]
+    output[:, :, h_half:h, 0:w_half] \
+        = sr_list[2][:, :, (h_size - h + h_half):h_size, 0:w_half]
+    output[:, :, h_half:h, w_half:w] \
+        = sr_list[3][:, :, (h_size - h + h_half):h_size, (w_size - w + w_half):w_size]
+
+    return output
+
+
+
+# def save_50_micron_train_example( model = None, epoch=20, plot_dir= 'example_plot'):
+
+#     image_path = 'lr_f1_160_z_75.png'
+#     images = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
+#     images = images/255.
+
+#     images = torch.from_numpy(images).float().unsqueeze(0).unsqueeze(0)
+#     print("shape of images is", images.shape)
+
+#     device = next(model.parameters()).device
+#     images = images.to(device)
+
+#     with torch.no_grad():
+#         out = forward_chop(model, images) #model(im_input)
+#         torch.cuda.synchronize()
+
+#     # input_image =  images.squeeze().cpu().numpy().astype('float')
+#     output_image =  out.detach().squeeze().cpu().numpy().astype('float')
+
+#     output_image = (output_image*255).astype('uint8')
+
+
+#     image_name = 'image_plot_'+str(epoch)+'.png'
+#     image_path = os.path.join(plot_dir, image_name)
+
+#     if not os.path.exists(plot_dir):
+#         os.makedirs(plot_dir)
+
+#     cv2.imwrite(image_path, output_image)
 
 class Trainer(object):
 
@@ -25,6 +99,7 @@ class Trainer(object):
         self.wandb_obj = args.wandb_obj
 
         self.plot_train_example = args.plot_train_example
+        self.plot_image_example = args.output_image_dir
 
         self.device = args.device
         self.wandb = args.wandb  # true of false
@@ -71,6 +146,7 @@ class Trainer(object):
         self.train_images_dir = args.train_images_dir
         self.plot_dir = args.plot_dir
         self.loss_dir = args.loss_dir
+        self.device = args.device
 
     # def get_infinite_batches(self):
     #     while True:
@@ -109,6 +185,10 @@ class Trainer(object):
                 print("Using TV regularizer")
                 self.gen_losses['tv_regularizer'] = TVRegularizer()
                 self.generator_loss_key_list.append('tv_regularizer')
+            elif loss in ['ranker_loss','ranker', 'classification_loss', 'classification']:
+                print("Using Ranker Loss")
+                self.gen_losses['ranker_loss'] = RankLoss(checkpoint_path=self.args.ranker_checkpoint_path, device=self.devie)
+                self.generator_loss_key_list.append('ranker_loss')
 
     def val_epoch(self):
         self.G.eval()
@@ -137,7 +217,7 @@ class Trainer(object):
                 hfen += hfen_error(output, label)
         return loss.item()/count, l1.item()/count,psnr.item()/count, ssim.item()/count,hfen.item()/count
 
-    def save_train_example(self,images,fake_images,epoch, plot_label=True, labels=None,):
+    def save_train_example(self,images,fake_images,epoch, plot_label=True, labels=None):
         batch_size, channels, height, width = images.shape
 
         print("The shape if images, labels and fake images is", images.shape,labels.shape,fake_images.shape)
@@ -182,6 +262,39 @@ class Trainer(object):
 
         # Save the full figure...
         fig.savefig(image_path)
+
+
+    def save_50_micron_train_example( self,model = None, epoch=20):
+
+        image_path = 'lr_f1_160_z_75.png'
+        images = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
+        images = images/255.
+
+        images = torch.from_numpy(images).float().unsqueeze(0).unsqueeze(0)
+        print("shape of images is", images.shape)
+        print("range of image is", images.min(), images.max())
+
+        device = next(model.parameters()).device
+        images = images.to(device)
+
+        with torch.no_grad():
+            out = forward_chop(model, images) #model(im_input)
+            torch.cuda.synchronize()
+
+        # input_image =  images.squeeze().cpu().numpy().astype('float')
+        output_image =  out.detach().squeeze().cpu().numpy().astype('float')
+
+        output_image = (output_image*255.).astype('uint8')
+
+
+        image_name = 'image_plot_'+str(epoch)+'.png'
+        image_path = os.path.join(self.plot_image_example, image_name)
+
+        if not os.path.exists(self.plot_image_example):
+            os.makedirs(self.plot_image_example)
+
+        cv2.imwrite(image_path, output_image)
+
 
     def train_epoch():
       pass

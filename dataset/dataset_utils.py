@@ -127,27 +127,31 @@ def downsample_image_with_mode(array,factor=2, mode='Lanczos',double_downsample 
 
     
     
-def downsample_kspace(hr_image, upscale_factor= 2, gaussian = False, sigma = 75):
+def downsample_kspace(hr_image, upscale_factor= 2, gaussian = False, sigma = 75, kspace_crop=False):
 
     F = np.fft.fft2(hr_image)
     fshift = np.fft.fftshift(F)
     
     y,x = fshift.shape
 
-    # data_pad = np.zeros((y,x),dtype=np.complex_)
+   ###### # data_pad = np.zeros((y,x),dtype=np.complex_)
 
-    center_y = y//2 #defining the center of image in x and y direction
-    center_x = x//2
-    startx = center_x-(x//(upscale_factor*2))  
-    starty = center_y-(y//(upscale_factor*2))
+    # center_y = y//2 #defining the center of image in x and y direction
+    # center_x = x//2
+    # startx = center_x-(x//(upscale_factor*2))  
+    # starty = center_y-(y//(upscale_factor*2))
     
-    arr = fshift[starty:starty+(y//upscale_factor),startx:startx+(x//upscale_factor)]
+    # arr = fshift[starty:starty+(y//upscale_factor),startx:startx+(x//upscale_factor)]
     
-    img_reco_cropped = np.fft.ifft2(np.fft.ifftshift(arr)) 
-    image = np.abs(img_reco_cropped )
+    # img_reco_cropped = np.fft.ifft2(np.fft.ifftshift(arr)) 
+    # image = np.abs(img_reco_cropped )
     
     if gaussian:
-        image = downsample_gaussian_with_sigma(image,sigma)
+        if kspace_crop:
+            image = downsample_gaussian_with_sigma(image,sigma)
+        else:
+            # print("no cropping kspace")
+            image = downsample_gaussian_with_sigma(hr_image,sigma)
 
     return image
 
@@ -338,6 +342,7 @@ def prepare_lr_image(hr_image, degradation_method,upscale_factor):
         lr_image = downsample_bicubic(hr_image, upscale_factor)
 
     elif degradation_method == 'nearest':
+        print("inside nearest")
         lr_image = downsample_image_with_mode(array=hr_image,mode='nearest')
 
     elif degradation_method == 'bilinear':
@@ -349,10 +354,10 @@ def prepare_lr_image(hr_image, degradation_method,upscale_factor):
     elif degradation_method in ['crop_kspace','kspace']:
         lr_image = downsample_kspace(hr_image, upscale_factor)
 
-    elif degradation_method == ['kspace_gaussian_50','kspace_gaussian_75','kspace_gaussian_25','kspace_gaussian_100','kspace_gaussian_125','kspace_gaussian_150']:
-        sigma = degradation_method.split('_')[2]
-        lr_image = downsample_kspace(hr_image=hr_image, gaussian =True, sigma=sigma)
-
+    elif degradation_method in ['kspace_gaussian_50','kspace_gaussian_75','kspace_gaussian_25','kspace_gaussian_100','kspace_gaussian_125','kspace_gaussian_150']:# higher signma means less
+        sigma = int(degradation_method.split('_')[2])
+        lr_image = downsample_kspace(hr_image=hr_image, gaussian =True, sigma=sigma, kspace_crop=False)
+ 
     elif degradation_method == 'mean_blur':
         lr_image = generate_mean_blur_images(image_array=hr_image, kernel_size=3,upscale_factor=upscale_factor)
 
@@ -366,6 +371,7 @@ def prepare_lr_image(hr_image, degradation_method,upscale_factor):
         lr_image = downsample_kspace_han_ham(hr_image, upscale_factor= 2, method = 'hamm')
 
     else:
+        print("using default")
         lr_image = downsample_bicubic(hr_image)
 
     return lr_image

@@ -9,25 +9,78 @@ from models.esrt import  ESRT
 import matplotlib.pyplot as plt
 from collections import OrderedDict
 import test_utils as utils
+import glob
 
 # Testing settings
 
 # Test_Datasets/Set5/
 # Test_Datasets/Set5_LR/x2/
 
+checkpoints =  [
+        'outputs/esrt_gan/esrt_factor_2_l1_ssim_all_degradation/checkpoints/patch/patch-200/factor_2/epoch_2500_f_2.pth',
+        'outputs/esrt_gan/esrt_gan_factor_2_standardgan(l1_ssim)_(l1_ssim)_all_degradation/checkpoints/patch/patch-200/factor_2/epoch_2360_f_2.pth',
+        'outputs/esrt_gan/esrt_gan_factor_2_standard_gan_all_degradation_25_50_micron/checkpoints/patch/patch-200/factor_2/epoch_1400_f_2.pth',
+        'outputs/esrt_gan/esrt_gan_factor_2_standardgan_(l1_ssim_tv)_all_degradation/checkpoints/patch/patch-200/factor_2/epoch_2480_f_2.pth',
+        # 'outputs/esrt_gan/esrt_gan_factor_2_lsgan_25_50_micron/checkpoints/patch/patch-200/factor_2/epoch_1800_f_2.pth',
+        'outputs/esrt_gan/esrt_gan_factor_2_lsgan_25_50_micron/checkpoints/patch/patch-200/factor_2/epoch_1520_f_2.pth',
+        'outputs/esrt_gan/esrt_gan_factor_2_lsgan(l1_ssim)_(l1_ssim)_all_degradation/checkpoints/patch/patch-200/factor_2/epoch_2200_f_2.pth'
+    ]
+    
+names =  ['ph1_l1_ssim','ph2_standard','ph3_standard','ph2_lstandard', 'ph3_lsgan', 'ph2_lsgan']
+
+# names = ['l1','l1_ssim','l1_ssim_tv', 'l1_ssim_tv_pyramid', 'mse', 'ssim']
+# checkpoints = [
+#     'outputs/esrt_gan/esrt_factor_2_l1_loss_all_degradation/checkpoints/patch/patch-200/factor_2/epoch_1000_f_2.pth',
+#     'outputs/esrt_gan/esrt_factor_2_l1_ssim_all_degradation/checkpoints/patch/patch-200/factor_2/epoch_2500_f_2.pth',
+#     'outputs/esrt_gan/esrt_factor_2_l1_ssim_tv_regularizer_all_degradation/checkpoints/patch/patch-200/factor_2/epoch_2500_f_2.pth',
+#     'outputs/esrt_gan/esrt_factor_2_l1_ssim_tv_regurlaizer_pyramid_loss_all_degradation/checkpoints/patch/patch-200/factor_2/epoch_2500_f_2.pth',
+#     'outputs/esrt_gan/esrt_factor_2_mse_loss_all_degradation/checkpoints/patch/patch-200/factor_2/epoch_1000_f_2.pth',
+#     'outputs/esrt_gan/esrt_factor_2_ssim_loss_all_degradation/checkpoints/patch/patch-200/factor_2/epoch_1000_f_2.pth'
+
+# ]
+
+# names = ['ph1_l1_ssim_ema','ph1_l1_ssim_v2', 'ema', 'ema']
+# checkpoints = [
+#     'outputs/esrt/esrt_factor_2_l1_ssim_all_degradation_version2/checkpoints/patch/patch-200/factor_2/ema_beta_0.9.pth',
+#     'outputs/esrt/esrt_factor_2_l1_ssim_all_degradation_version2/checkpoints/patch/patch-200/factor_2/epoch_2500_f_2.pth',
+#     'outputs/esrt_gan/esrt_standardgan(l1_ssim_tv_pyramid)_(l1_ssim_tv_pyramid)_ph2/checkpoints/patch/patch-200/factor_2/ema_beta_0.9.pth',
+#     'outputs/esrt_gan/esrt_lsgan(l1_ssim_tv_pyramid)_(l1_ssim_tv_pyramid)_ph2/checkpoints/patch/patch-200/factor_2/ema_beta_0.9.pth'
+
+#     ]
+
+# checkpoint_folder = 'outputs/esrt_gan/esrt_standardgan(l1_ssim_tv_pyramid)_(l1_ssim_tv_pyramid)_ph2/checkpoints/patch/patch-200/factor_2/'
+# checkpoint_folder = 'outputs/esrt_gan/esrt_lsgan(l1_ssim_tv_pyramid)_(l1_ssim_tv_pyramid)_ph2/checkpoints/patch/patch-200/factor_2/'
+# #### Get a list of all checkpoint files in the folder
+# checkpoints = glob.glob(os.path.join(checkpoint_folder, '*.pth'))
+# print(checkpoints)
+
+# names = [chkpt.split('/')[7].split('_')[1] for chkpt in checkpoints]
+
+# print(checkpoints)
+# print(names)
+# print(len(checkpoints))
+# # quit()
+
+idx = 5
+
 parser = argparse.ArgumentParser(description='ESRT')
 parser.add_argument("--test_lr_folder", type=str, default='../model_bias_experiment/mri_dataset_50/test',
                     help='the folder of the input images')
-parser.add_argument("--output_folder", type=str, default='results/x2_mri_result')
-parser.add_argument("--checkpoint", type=str, default='outputs/esrt_gan/esrt_factor_2_l1_loss_all_degradation/checkpoints/patch/patch-200/factor_2/epoch_300_f_2.pth',
+parser.add_argument("--output_folder", type=str, default='results/'+ str(names[idx]))
+parser.add_argument("--checkpoint", type=str, default=checkpoints[idx],
                     help='checkpoint folder to use')
 parser.add_argument('--cuda', action='store_true', default=True,
                     help='use cuda')
 parser.add_argument("--upscale_factor", type=int, default=2,
                     help='upscaling factor')
+parser.add_argument("--idx", type=int, default=5,
+help='upscaling factor')
 opt = parser.parse_args()
 
 # print(opt)
+
+opt.checkpoints = checkpoints[opt.idx]
+opt.output_folder = 'results/'+ str(names[opt.idx])
 
 if not os.path.exists(opt.output_folder):
     os.makedirs(opt.output_folder)
@@ -103,7 +156,7 @@ def load_state_dict_func(path):
 
 def load_model(opt):
     checkpoint = torch.load(opt.checkpoint,map_location=torch.device(opt.device))
-    model = ESRT(upscale = opt.upscale_factor)#
+    # model = ESRT(upscale = opt.upscale_factor)#
     model = ESRT(
             upscale=checkpoint['upscale_factor'],
             n_feats=checkpoint['n_feats'],
@@ -115,6 +168,12 @@ def load_model(opt):
     return model
 
 model = load_model(opt)
+# model = model = ESRT(
+#             upscale=2,
+#             n_feats=16,
+#             n_blocks=2, 
+#             kernel_size=3
+#             ).to(device=opt.device)
 
 i = 0
 start = torch.cuda.Event(enable_timing=True)
@@ -143,12 +202,13 @@ for imname in filelist:
 
     print ("Reached here")
     with torch.no_grad():
-        start.record()
+        # start.record()
         out = forward_chop(model, im_input) #model(im_input)
+        print("input shape and output shape",im_input.shape, out.shape)
         # out = model(im_input)
-        end.record()
+        # end.record()
         torch.cuda.synchronize()
-        timelist[i] = start.elapsed_time(end)  # milliseconds
+        # timelist[i] = start.elapsed_time(end)  # milliseconds
 
     out_img = utils.tensor2np(out.detach()[0])
     plt.imshow(out_img)
@@ -156,21 +216,22 @@ for imname in filelist:
     cropped_sr_img = utils.shave(out_img, crop_size)
     cropped_lr_img = utils.shave(im_lr, crop_size)
 
-    output_folder = os.path.join(opt.output_folder,
-                                 imname.split('/')[-1].split('.')[0] + 'x_new' + str(opt.upscale_factor) + '.png')
+    output_image_folder = os.path.join(opt.output_folder,'images/')
+    if not os.path.exists(output_image_folder):
+        os.makedirs(output_image_folder)
 
-    print("output folder", output_folder)
-    if not os.path.exists(opt.output_folder):
-        os.makedirs(opt.output_folder)
-
-    # print(out_img.shape)
-    cv2.imwrite(output_folder, out_img)
+    output_image_path = os.path.join(output_image_folder,
+                                  imname.split('/')[-1].split('.')[0] + '.png')
+    cv2.imwrite(output_image_path, out_img)
 
     i=2
     input_image = im_input.squeeze().detach().cpu().numpy().astype('float')
     output_image = out.squeeze().detach().cpu().numpy().astype('float')
     input_image = input_image[20:60,20:60]
     output_image = output_image[40:120,40:120]
+
+    # input_image = input_image[20:160,20:160]
+    # output_image = output_image[40:320,40:320]
 
     fig = plt.figure()
     ax1 = fig.add_subplot(1,i,1)
@@ -182,11 +243,16 @@ for imname in filelist:
     ax2.imshow(output_image,cmap='gray')
     ax2.set_title("Output image")
 
-    image_path = os.path.join(opt.output_folder,
-                                 imname.split('/')[-1].split('.')[0] + 'x_new_plot' + str(opt.upscale_factor) + '.png')
+    output_plot_folder = os.path.join(opt.output_folder,'plots')
+    if not os.path.exists(output_plot_folder):
+        os.makedirs(output_plot_folder)
+
+    image_path = os.path.join(output_plot_folder,
+                                 imname.split('/')[-1].split('.')[0] + '.png')
 
     # Save the full figure...
     fig.savefig(image_path)
+    print("Image saved at", image_path)
 
     i += 1
 

@@ -32,14 +32,10 @@ class LSGANTrainer(Trainer):
             assert len(self.gen_losses) == len(self.gen_loss_wt), ('list of generator pixel losses and list of those loss weights should have the same length, but got '
                                                 f'{len(self.gen_losses)} and {len(self.gen_loss_wt)}.')
 
-        # self.adversarial_criterion = torch.nn.BCELoss()  # outputs should be raw probability score (softmax should be applied beforehand)
-        # self.adversarial_criterion = torch.nn.BCEWithLogitsLoss() # takes raw logits and applies softmax before calculating loss
-        # self.adversarial_criterion = torch.nn.BCEWithLogitsLoss(reduce=False)#computes the binary cross-entropy loss with sigmoid function, but does not reduce the loss over all examples in the batch
-
         if self.use_pixel_loss:
-            self.loss_keys_list = self.generator_loss_key_list + ['loss_D_fake','loss_D_real','loss_D', 'loss_G_real', 'loss_G_fake','loss_G_Gan','loss_G']
+            self.loss_keys_list = self.generator_loss_key_list + ['loss_D_fake','loss_D_real','loss_D','loss_G_Gan','loss_G']
         else:
-            self.loss_keys_list = ['loss_D_fake','loss_D_real','loss_D', 'loss_G_real', 'loss_G_fake','loss_G_Gan','loss_G']
+            self.loss_keys_list = ['loss_D_fake','loss_D_real','loss_D','loss_G_Gan','loss_G']
 
         self.metric_dict = LogMetric({key: [] for key in self.loss_keys_list})
 
@@ -47,117 +43,117 @@ class LSGANTrainer(Trainer):
         self.tv_regularizer = TVRegularizer()
     
         
-    
 
-    def train_epoch(self,epoch):
+    # def train_epoch(self,epoch):
 
-        epoch_losses = create_loss_meters_from_keys(self.loss_keys_list)  # create average meter for all loss
-        start_time = time.time()
-        with tqdm(total=(len(self.train_dataset) - len(self.train_dataset) % self.train_batch_size), ncols=80) as t:
-            t.set_description('epoch: {}/{}'.format(epoch, self.num_epochs - 1))
+    #     epoch_losses = create_loss_meters_from_keys(self.loss_keys_list)  # create average meter for all loss
+    #     start_time = time.time()
+    #     with tqdm(total=(len(self.train_dataset) - len(self.train_dataset) % self.train_batch_size), ncols=80) as t:
+    #         t.set_description('epoch: {}/{}'.format(epoch, self.num_epochs - 1))
 
-            for idx, (data) in enumerate(self.train_dataloader):
-                images = data['lr'].to(self.device)
-                labels = data['hr'].to(self.device)
+    #         for idx, (data) in enumerate(self.train_dataloader):
+    #             images = data['lr'].to(self.device)
+    #             labels = data['hr'].to(self.device)
 
-                batch_size = images.shape[0]
+    #             batch_size = images.shape[0]
 
-                # creating real and fake labels
-                real_labels = torch.FloatTensor(batch_size,1).fill_(1).to(self.device)
-                fake_labels = torch.FloatTensor(batch_size,1).fill_(0).to(self.device)
+    #             # creating real and fake labels
+    #             real_labels = torch.FloatTensor(batch_size,1).fill_(1).to(self.device)
+    #             fake_labels = torch.FloatTensor(batch_size,1).fill_(0).to(self.device)
 
-                #training generator
-                self.set_requires_grad(self.G,True)
-                self.set_requires_grad(self.D,False)
-                self.g_optimizer.zero_grad()
+    #             #training generator
+    #             self.set_requires_grad(self.G,True)
+    #             self.set_requires_grad(self.D,False)
+    #             self.g_optimizer.zero_grad()
 
-                # print("the shape of input image is", images.shape)
-                fake_images = self.G(images)
-                fake_output = self.D(fake_images.detach().clone())
-                d_loss_sr = torch.mean((fake_output - real_labels) ** 2) 
+    #             # print("the shape of input image is", images.shape)
+    #             fake_images = self.G(images)
+    #             fake_output = self.D(fake_images.detach().clone())
+    #             d_loss_sr = torch.mean((fake_output - real_labels) ** 2) 
              
-                loss_G_Gan = self.adversarial_weight * d_loss_sr
+    #             loss_G_Gan = self.adversarial_weight * d_loss_sr
 
-                if self.use_pixel_loss:
-                    loss_G_pix = 0
-                    for idx ,(key, loss_obj) in enumerate(self.gen_losses.items()):
-                        pix_loss_wt = self.gen_loss_wt[idx]
-                        if key == 'tv_regularizer':
-                            pix_loss_value = loss_obj(fake_images)
-                        else:
-                            pix_loss_value = loss_obj(fake_images,labels)
-                        loss_G_pix += pix_loss_value * pix_loss_wt
+    #             if self.use_pixel_loss:
+    #                 loss_G_pix = 0
+    #                 for idx ,(key, loss_obj) in enumerate(self.gen_losses.items()):
+    #                     pix_loss_wt = self.gen_loss_wt[idx]
+    #                     if key == 'tv_regularizer':
+    #                         pix_loss_value = loss_obj(fake_images)
+    #                     else:
+    #                         pix_loss_value = loss_obj(fake_images,labels)
+    #                     loss_G_pix += pix_loss_value * pix_loss_wt
 
-                        epoch_losses[key].update(pix_loss_value.item(),batch_size)
-                    loss_G = loss_G_pix + loss_G_Gan
-                else:
-                    loss_G = loss_G_Gan
+    #                     epoch_losses[key].update(pix_loss_value.item(),batch_size)
+    #                 loss_G = loss_G_pix + loss_G_Gan
+    #             else:
+    #                 loss_G = loss_G_Gan
 
-                loss_G.backward()
-                self.g_optimizer.step()
-
-
-                # training discriminator
-                self.set_requires_grad(self.D,True)
-                self.d_optimizer.zero_grad()
-
-                gt_output = self.D(labels)
-                loss_D_real = torch.mean((gt_output - real_labels) ** 2) * 0.5
-                (loss_D_real).backward(retain_graph=True)
-
-                sr_output = self.D(fake_images.detach().clone())
-                loss_D_fake = torch.mean((sr_output) ** 2) * 0.5
-                # back-propagate the gradient information of the fake samples
-                (loss_D_fake).backward()
-                self.d_optimizer.step()
-
-                loss_D =  loss_D_real + loss_D_fake
-
-                # update average meter on every iteration
-                epoch_losses['loss_D'].update(loss_D.item(), batch_size)
-                epoch_losses['loss_D_fake'].update(loss_D_fake.item(), batch_size)
-                epoch_losses['loss_D_real'].update(loss_D_real.item(), batch_size)
-
-                epoch_losses['loss_G_Gan'].update(loss_G_Gan.item(),batch_size)
-                epoch_losses['loss_G'].update(loss_G.item(),batch_size)
-
-                if self.use_pixel_loss:
-                    epoch_losses['loss_G_pix'].update(loss_G_pix.item(),batch_size)
-
-                # print("complete on iteration")
-                # print ("***********************************")
-
-            log_results(epoch_losses) # function to print out the average per epoch
+    #             loss_G.backward()
+    #             self.g_optimizer.step()
 
 
-            t.set_postfix(loss='{:.6f}'.format(epoch_losses['loss_G_Gan'].avg))
-            t.update(len(images))
+    #             # training discriminator
+    #             self.set_requires_grad(self.D,True)
+    #             self.d_optimizer.zero_grad()
 
-            if epoch % self.n_freq==0:
-                if not os.path.exists(self.save_checkpoints_dir):
-                    os.makedirs(self.save_checkpoints_dir)
-                path = os.path.join(self.save_checkpoints_dir, 'epoch_{}_f_{}.pth'.format(epoch,self.args.factor))
+    #             gt_output = self.D(labels)
+    #             loss_D_real = torch.mean((gt_output - real_labels) ** 2) * 0.5
+    #             (loss_D_real).backward(retain_graph=True)
 
-                if self.data_parallel:
-                    self.G.module.save(model_weights=self.G.state_dict(),path=path,epoch=epoch)
-                else:
-                   self.G.save(model_weights=self.G.state_dict(),path=path,epoch=epoch) 
-                with torch.no_grad():
-                    preds = self.G(images.to(self.device)).to(self.device)
+    #             sr_output = self.D(fake_images.detach().clone())
+    #             loss_D_fake = torch.mean((sr_output) ** 2) * 0.5
+    #             # back-propagate the gradient information of the fake samples
+    #             (loss_D_fake).backward()
+    #             self.d_optimizer.step()
 
-                if self.plot_train_example:
-                    self.save_train_example(images=images,labels=labels,fake_images=fake_images,epoch=epoch)
+    #             loss_D =  loss_D_real + loss_D_fake
+
+    #             # update average meter on every iteration
+    #             epoch_losses['loss_D'].update(loss_D.item(), batch_size)
+    #             epoch_losses['loss_D_fake'].update(loss_D_fake.item(), batch_size)
+    #             epoch_losses['loss_D_real'].update(loss_D_real.item(), batch_size)
+
+    #             epoch_losses['loss_G_Gan'].update(loss_G_Gan.item(),batch_size)
+    #             epoch_losses['loss_G'].update(loss_G.item(),batch_size)
+
+    #             if self.use_pixel_loss:
+    #                 epoch_losses['loss_G_pix'].update(loss_G_pix.item(),batch_size)
+
+    #             # print("complete on iteration")
+    #             # print ("***********************************")
+
+    #         log_results(epoch_losses) # function to print out the average per epoch
 
 
-        end_time = time.time()
-        time_taken = (end_time - start_time) / 60.0
-        print("Time taken for a epoch: %.2f minutes" % time_taken)
-        return {
-            'epoch':epoch,
-            'hr': labels,
-            'lr':images,
-            'preds':fake_images,
-        }, epoch_losses
+    #         t.set_postfix(loss='{:.6f}'.format(epoch_losses['loss_G_Gan'].avg))
+    #         t.update(len(images))
+
+    #         if epoch % self.n_freq==0:
+    #             if not os.path.exists(self.save_checkpoints_dir):
+    #                 os.makedirs(self.save_checkpoints_dir)
+    #             path = os.path.join(self.save_checkpoints_dir, 'epoch_{}_f_{}.pth'.format(epoch,self.args.factor))
+
+    #             if self.data_parallel:
+    #                 self.G.module.save(model_weights=self.G.state_dict(),path=path,epoch=epoch)
+    #             else:
+    #                self.G.save(model_weights=self.G.state_dict(),path=path,epoch=epoch) 
+    #             with torch.no_grad():
+    #                 preds = self.G(images.to(self.device)).to(self.device)
+
+    #             if self.plot_train_example:
+    #                 self.save_train_example(images=images,labels=labels,fake_images=fake_images,epoch=epoch)
+    #                 self.save_50_micron_train_example(model=self.G, epoch=epoch)
+
+
+    #     end_time = time.time()
+    #     time_taken = (end_time - start_time) / 60.0
+    #     print("Time taken for a epoch: %.2f minutes" % time_taken)
+    #     return {
+    #         'epoch':epoch,
+    #         'hr': labels,
+    #         'lr':images,
+    #         'preds':fake_images,
+    #     }, epoch_losses
 
 
     def train(self):
@@ -277,7 +273,7 @@ class LSGANTrainer(Trainer):
                     loss_G_pix = 0
                     for idx ,(key, loss_obj) in enumerate(self.gen_losses.items()):
                         pix_loss_wt = self.gen_loss_wt[idx]
-                        if key == 'tv_regularizer':
+                        if key in ['tv_regularizer','tv','ranker_loss','ranker', 'classification_loss', 'classification']:
                             pix_loss_value = loss_obj(fake_images)
                         else:
                             pix_loss_value = loss_obj(fake_images,labels)
@@ -316,7 +312,9 @@ class LSGANTrainer(Trainer):
                     epoch_losses['loss_D'].update(loss_D.item(), batch_size)
                     epoch_losses['loss_D_real'].update(loss_D_real.item(), batch_size)
                     epoch_losses['loss_D_fake'].update(loss_D_fake.item(), batch_size)
+
             epoch_losses['loss_G_Gan'].update(loss_G_Gan.item(),batch_size)
+
             if self.use_pixel_loss:
                 epoch_losses['loss_G_pix'].update(loss_G_pix.item(),batch_size)
             epoch_losses['loss_G'].update(loss_G.item(),batch_size)
@@ -342,6 +340,7 @@ class LSGANTrainer(Trainer):
 
                 if self.plot_train_example:
                     self.save_train_example(images=images,labels=labels,fake_images=fake_images,epoch=epoch)
+                    self.save_50_micron_train_example(model=self.G, epoch=epoch)
 
 
 

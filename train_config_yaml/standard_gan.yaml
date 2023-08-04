@@ -1,8 +1,8 @@
 #configuration file
 
-info: 'TRaining realistic gan by loading the pretrained model'
+info: 'Training standard gan by loading the pretrained model (l1+ssim+tv+pyramid)'
 model_name: 'esrt_gan'
-exp_name: 'esrt_gan_factor_2_standardgan_(l1_ssim_tv)_all_degradation'
+exp_name: 'esrt_standardgan(l1_ssim_tv_pyramid)_(l1_ssim_tv_pyramid)_ph2'
 project_name: 'transformer_gan'
 wandb: True 
 
@@ -21,13 +21,15 @@ augment: True
 normalize: True
 
 #training settings
-num_epochs: 2505
+num_epochs: 3505
 n_freq: 40 # model checkpoint saving frequency
 plot_train_example: True
 train_batch_size: 8
 num_workers: 8
 seed: 547
-d_iter: 5
+d_iter: 2
+
+gan_loss_type: 'standard'
 
 
 # eval setting
@@ -38,12 +40,12 @@ eval_batch_size: 1   #set the val batch size to 1 always as we need to claculate
 
 resume: True
 # if resume True then
-checkpoint_path: 'outputs/esrt_gan/esrt_factor_2_l1_loss_all_degradation/checkpoints/patch/patch-200/factor_2/epoch_1000_f_2.pth'
+checkpoint_path: 'outputs/esrt_gan/esrt_factor_2_l1_ssim_tv_regurlaizer_pyramid_loss_all_degradation/checkpoints/patch/patch-200/factor_2/epoch_2500_f_2.pth'
 start_epoch: 0
 
 use_pixel_loss: True
-gen_loss_type: ['l1', 'ssim', 'tv_regularizer']
-gen_loss_wt: [1.0, 1.0, 1.0]
+gen_loss_type: ['l1', 'ssim', 'tv_regularizer', 'pyramid']
+gen_loss_wt: [1.0, 1.0, 0.001, 0.01]
 adversarial_weight: 1.0
 
 
@@ -76,14 +78,14 @@ apply_sigmoid: True
 
 
 #optimizer for generator 
-g_lr: 0.0005
+g_lr: 0.00002
 g_optimizer_type: 'adam'
 g_lr_decay_factor: 0.98
 g_optimizer_betas: (0.99, 0.999)
 g_lr_schedular_step: 200
 
 # optimizer for discriminator
-d_lr: 0.0001
+d_lr: 0.00001
 d_optimizer_type: 'adam'
 d_lr_decay_factor: 0.95
 d_optimizer_betas: (0.99, 0.999)

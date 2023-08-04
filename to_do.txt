@@ -1,0 +1,20 @@
+experimenting with (l1,ssim) checkpoints
+1) train standard gan with d-iters 2 (doing tmux 0)
+2) train lsgan with d_iters 2 (doing tmux 1)
+
+
+
+
+#train again using
+small learning rate
+more epoch
+increasing the blocks of esrt if possible
+including mean and median blur
+using upsample with pixelshuffle (already there)
+
+
+
+
+Doing (In this exp dataset class is chnaged so that patch is extracted after creating lr image to correct the over lightning effect on output images)
+1.train ph1:l1,ssim(version 2) including mean and median blur (tmux 0)
+2. train ph1: l1, ssim, pyramid, tv (version 2) including mean and median blur and low_lr_rate and more epochs and l1_wt=1.0, ssim=1.0, tv_weight=0.01, pyramid_wt=0.1

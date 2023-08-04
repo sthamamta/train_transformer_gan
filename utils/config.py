@@ -28,6 +28,9 @@ def set_training_metric_dir(opt):
 def set_plots_dir(opt):
     if opt.patch:
         opt.plot_dir = 'outputs/{}/{}/plots/patch/patch-{}/factor_{}/'.format(opt.model_name, opt.exp_name,opt.patch_size,opt.factor)
+        opt.output_image_dir =  'outputs/{}/{}/images_plots/patch/patch-{}/factor_{}/'.format(opt.model_name, opt.exp_name,opt.patch_size,opt.factor)
     else:
         opt.plot_dir = 'outputs/{}/{}/plots/factor_{}/'.format(opt.model_name, opt.exp_name,opt.factor)
+        opt.output_image_dir =  'outputs/{}/{}/image_plots/factor_{}/'.format(opt.model_name, opt.exp_name,opt.factor)
+
 
