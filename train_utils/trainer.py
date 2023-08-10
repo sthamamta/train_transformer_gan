@@ -220,7 +220,7 @@ class Trainer(object):
     def save_train_example(self,images,fake_images,epoch, plot_label=True, labels=None):
         batch_size, channels, height, width = images.shape
 
-        print("The shape if images, labels and fake images is", images.shape,labels.shape,fake_images.shape)
+        # print("The shape if images, labels and fake images is", images.shape,labels.shape,fake_images.shape)
 
         # Choose a random image index from the batch
         # random_image_index = torch.randint(0, batch_size, size=(1,)).item()
@@ -271,8 +271,8 @@ class Trainer(object):
         images = images/255.
 
         images = torch.from_numpy(images).float().unsqueeze(0).unsqueeze(0)
-        print("shape of images is", images.shape)
-        print("range of image is", images.min(), images.max())
+        # print("shape of images is", images.shape)
+        # print("range of image is", images.min(), images.max())
 
         device = next(model.parameters()).device
         images = images.to(device)
@@ -280,8 +280,8 @@ class Trainer(object):
         with torch.no_grad():
             out = forward_chop(model, images) #model(im_input)
             torch.cuda.synchronize()
-
-        # input_image =  images.squeeze().cpu().numpy().astype('float')
+        
+        out = (out-out.min())/(out.max()-out.min())  #minmax normalize the image
         output_image =  out.detach().squeeze().cpu().numpy().astype('float')
 
         output_image = (output_image*255.).astype('uint8')

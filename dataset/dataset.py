@@ -99,25 +99,32 @@ class MRIDataset(Dataset):
 
         # print("reading input image from :", input_path)
         # print("reading label image from :", label_path)
+        # print(downsample_method)
 
         #read hr image
         hr_image = cv2.imread(label_path, cv2.IMREAD_UNCHANGED)
 
+        # if self.augment:
+        #     hr_image = self.augment_image(hr_image,True,True)
+
+
+        # ***************************************************************************************************
+
+        # create hr patch
+        if self.patch_size is not None:
+            hr_image = self.create_patch(hr_image, self.patch_size)
+
         if self.augment:
             hr_image = self.augment_image(hr_image,True,True)
 
-        #create hr patch
-        # if self.patch_size is not None:
-        #     hr_image = self.create_patch(hr_image, self.patch_size)
 
-        # if self.augment:
-        #     hr_image = self.augment_image(hr_image,True,True)
+        #********************************************************************************************************
 
         # create lr image
         lr_image = prepare_lr_image(hr_image,downsample_method, self.scale_factor)
 
-        if self.patch_size is not None:
-            lr_image, hr_image = self.extract_patch_hr_lr(lr_image, hr_image, self.patch_size/self.scale_factor)
+        # if self.patch_size is not None:
+        #     lr_image, hr_image = self.extract_patch_hr_lr(lr_image, hr_image, self.patch_size/self.scale_factor)
 
         hr_image = hr_image[:lr_image.shape[0]* self.scale_factor,:lr_image.shape[1]* self.scale_factor]
         

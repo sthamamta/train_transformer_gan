@@ -239,15 +239,19 @@ class StandardGANTrainer(Trainer):
 
 
     def train_epoch_generator_more_epoch(self,epoch):
-
+        # print("STARTING EPOCH #####################################################################################")
         epoch_losses = create_loss_meters_from_keys(self.loss_keys_list)  # create average meter for all loss
         start_time = time.time()
         with tqdm(total=(len(self.train_dataset) - len(self.train_dataset) % self.train_batch_size), ncols=80) as t:
             t.set_description('epoch: {}/{}'.format(epoch, self.num_epochs - 1))
-
-            for idx, (data) in enumerate(self.train_dataloader):
+            # print("length of data loader", len(self.train_dataloader))
+            idx_new = 0
+            for data in self.train_dataloader:
+                # print("inside dataloader")
                 images = data['lr'].to(self.device)
                 labels = data['hr'].to(self.device)
+                # index = data['index']
+                # print("image index", index)
 
                 batch_size = images.shape[0]
 
@@ -256,14 +260,14 @@ class StandardGANTrainer(Trainer):
 
                 #training generator
                 self.set_requires_grad(self.G,True)
-                self.set_requires_grad(self.D,True)
+                self.set_requires_grad(self.D,False)
                 
                 self.g_optimizer.zero_grad()
 
 
                 # print("the shape of input image is", images.shape)
                 fake_images = self.G(images)
-                print("shape of fake images", fake_images.shape)
+                # print("shape of fake images", fake_images.shape)
                 fake_output = self.D(fake_images)
                 # fake_output = self.D(fake_images.detach().clone())
                 d_loss_sr = torch.mean((fake_output - real_labels) ** 2) 
@@ -290,7 +294,13 @@ class StandardGANTrainer(Trainer):
 
 
                 # training discriminator
-                if (idx + 1) % self.d_iter == 0:
+                # print("training_discriminator")
+                # print("idx", idx_new)
+                # print("*************************************************")
+                # print("condition",(idx_new + 1) % self.d_iter)
+                # print("************************************************************")
+
+                if (idx_new + 1) % self.d_iter == 0:
                     self.set_requires_grad(self.D,True)
                     self.d_optimizer.zero_grad()
 
@@ -298,10 +308,14 @@ class StandardGANTrainer(Trainer):
                     real_labels = torch.FloatTensor(batch_size, 1).uniform_(0.8, 1.1).to(self.device)
 
                     gt_output = self.D(labels)
+                    # print("gt outputs", gt_output)
+                    # print("****************************************************************************************")
                     loss_D_real = torch.mean((gt_output - real_labels) ** 2) * 0.5
                     (loss_D_real).backward(retain_graph=True)
 
                     sr_output = self.D(fake_images.detach().clone())
+                    # print("sr output",sr_output)
+
                     loss_D_fake = torch.mean((sr_output) ** 2) * 0.5
                     (loss_D_fake).backward()
                     self.d_optimizer.step()
@@ -313,6 +327,9 @@ class StandardGANTrainer(Trainer):
                     epoch_losses['loss_D_real'].update(loss_D_real.item(), batch_size)
                     epoch_losses['loss_D_fake'].update(loss_D_fake.item(), batch_size)
 
+                # idx += 1
+                idx_new += 1
+                
             epoch_losses['loss_G_Gan'].update(loss_G_Gan.item(),batch_size)
             if self.use_pixel_loss:
                 epoch_losses['loss_G_pix'].update(loss_G_pix.item(),batch_size)
@@ -325,6 +342,9 @@ class StandardGANTrainer(Trainer):
             t.set_postfix(loss='{:.6f}'.format(epoch_losses['loss_G_Gan'].avg))
             t.update(len(images))
 
+            with torch.no_grad():
+                    preds = self.G(images.to(self.device)).to(self.device)
+
             if epoch % self.n_freq==0:
                 if not os.path.exists(self.save_checkpoints_dir):
                     os.makedirs(self.save_checkpoints_dir)
@@ -333,11 +353,10 @@ class StandardGANTrainer(Trainer):
                     self.G.module.save(model_weights=self.G.state_dict(),path=path,epoch=epoch)
                 else:
                     self.G.save(model_weights=self.G.state_dict(),path=path,epoch=epoch)
-                with torch.no_grad():
-                    preds = self.G(images.to(self.device)).to(self.device)
+            
 
                 if self.plot_train_example:
-                    self.save_train_example(images=images,labels=labels,fake_images=fake_images,epoch=epoch)
+                    self.save_train_example(images=images,labels=labels,fake_images=preds,epoch=epoch)
                     self.save_50_micron_train_example(model=self.G, epoch=epoch)
 
 
@@ -349,5 +368,6 @@ class StandardGANTrainer(Trainer):
             'epoch':epoch,
             'hr': labels,
             'lr':images,
-            'preds':fake_images,
+            'preds':preds,
         }, epoch_losses
+    

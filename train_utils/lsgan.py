@@ -242,7 +242,7 @@ class LSGANTrainer(Trainer):
         start_time = time.time()
         with tqdm(total=(len(self.train_dataset) - len(self.train_dataset) % self.train_batch_size), ncols=80) as t:
             t.set_description('epoch: {}/{}'.format(epoch, self.num_epochs - 1))
-
+            idx_new = 0
             for idx, (data) in enumerate(self.train_dataloader):
                 images = data['lr'].to(self.device)
                 labels = data['hr'].to(self.device)
@@ -312,7 +312,7 @@ class LSGANTrainer(Trainer):
                     epoch_losses['loss_D'].update(loss_D.item(), batch_size)
                     epoch_losses['loss_D_real'].update(loss_D_real.item(), batch_size)
                     epoch_losses['loss_D_fake'].update(loss_D_fake.item(), batch_size)
-
+                idx_new +=1
             epoch_losses['loss_G_Gan'].update(loss_G_Gan.item(),batch_size)
 
             if self.use_pixel_loss:
@@ -326,6 +326,9 @@ class LSGANTrainer(Trainer):
             t.set_postfix(loss='{:.6f}'.format(epoch_losses['loss_G_Gan'].avg))
             t.update(len(images))
 
+            with torch.no_grad():
+                    preds = self.G(images.to(self.device)).to(self.device)
+
             if epoch % self.n_freq==0:
                 if not os.path.exists(self.save_checkpoints_dir):
                     os.makedirs(self.save_checkpoints_dir)
@@ -334,9 +337,6 @@ class LSGANTrainer(Trainer):
                     self.G.module.save(model_weights=self.G.state_dict(),path=path,epoch=epoch)
                 else:
                     self.G.save(model_weights=self.G.state_dict(),path=path,epoch=epoch)
-
-                with torch.no_grad():
-                    preds = self.G(images.to(self.device)).to(self.device)
 
                 if self.plot_train_example:
                     self.save_train_example(images=images,labels=labels,fake_images=fake_images,epoch=epoch)
@@ -351,5 +351,5 @@ class LSGANTrainer(Trainer):
             'epoch':epoch,
             'hr': labels,
             'lr':images,
-            'preds':fake_images,
+            'preds':preds,
         }, epoch_losses

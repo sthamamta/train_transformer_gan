@@ -33,7 +33,7 @@ class MRIDataset(Dataset):
 
         self.downsample_list = downsample_method
         self.labels_list = self.labels
-        self.n_sample = 1200
+        self.n_sample = 1800
         while len(self.labels_list) < self.n_sample:
             random_sample = random.choice(self.labels_list)
             self.labels_list.append(random_sample)
@@ -95,12 +95,14 @@ class MRIDataset(Dataset):
             label = torch.tensor(0)
         elif downsample_method == 'kspace_gaussian_75':
             label = torch.tensor(1)
-        elif downsample_method == 'kspace_gaussian_100':
+        elif downsample_method in ['kspace_gaussian_100', 'hanning', 'hamming']:
             label = torch.tensor(2)
-        elif downsample_method == 'kspace_gaussian_125':
+        elif downsample_method in ['kspace_gaussian_125', 'bicubic','mean_blur', 'median_blur']:
             label = torch.tensor(3)
-        elif downsample_method == 'hr':
+        elif downsample_method == 'kspace_gaussian_150':
             label = torch.tensor(4)
+        elif downsample_method == 'hr':
+            label = torch.tensor(5)
         else:
             print ("Label value not found for downsample method ", downsample_method)
             label = None

@@ -20,14 +20,14 @@ import time
 import matplotlib.pyplot as plt
 from train_utils.no_gan_trainer import NoGanTrainer
 
-os.environ["CUDA_VISIBLE_DEVICES"]='1'
+os.environ["CUDA_VISIBLE_DEVICES"]='0,1'
 
 
 if __name__ == "__main__":
     '''get the configuration file'''
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', help="configuration file *.yml", type=str, required=False, 
-    default='train_config_yaml/esrt_train1.yaml')
+    default='train_config_yaml/esrt_train.yaml')
     sys.argv = ['-f']
     opt   = parser.parse_known_args()[0]
 

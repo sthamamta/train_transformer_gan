@@ -44,9 +44,10 @@ checkpoint_folders = [
         'outputs/esrt_gan/esrt_gan_factor_2_lsgan_25_50_micron/checkpoints/patch/patch-200/factor_2/',
         'outputs/esrt/esrt_factor_2_l1_ssim_all_degradation_version2/checkpoints/patch/patch-200/factor_2/',
         'outputs/esrt_gan/esrt_standardgan(l1_ssim_tv_pyramid)_(l1_ssim_tv_pyramid)_ph2/checkpoints/patch/patch-200/factor_2/',
-        'outputs/esrt_gan/esrt_lsgan(l1_ssim_tv_pyramid)_(l1_ssim_tv_pyramid)_ph2/checkpoints/patch/patch-200/factor_2/'
+        'outputs/esrt_gan/esrt_lsgan(l1_ssim_tv_pyramid)_(l1_ssim_tv_pyramid)_ph2/checkpoints/patch/patch-200/factor_2/',
+        'outputs/esrt/esrt_l1_ssim_ph1/checkpoints/patch/patch-200/factor_2/'
 ]
-checkpoint_folder = checkpoint_folders[7]
+checkpoint_folder = checkpoint_folders[8]
 # checkpoint_folder = 'outputs/esrt_gan/esrt_gan_factor_2_standard_gan_checkpoint_ph1(l1,ssim)_25_50_micron/checkpoints/patch/patch-200/factor_2/'
 
 # Get a list of all checkpoint files in the folder

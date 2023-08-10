@@ -18,3 +18,18 @@ using upsample with pixelshuffle (already there)
 Doing (In this exp dataset class is chnaged so that patch is extracted after creating lr image to correct the over lightning effect on output images)
 1.train ph1:l1,ssim(version 2) including mean and median blur (tmux 0)
 2. train ph1: l1, ssim, pyramid, tv (version 2) including mean and median blur and low_lr_rate and more epochs and l1_wt=1.0, ssim=1.0, tv_weight=0.01, pyramid_wt=0.1
+
+
+
+Starting from the simple
+standard ph2 using l1 
+ls ph2 using l1
+(In this training the image plots during the training were weird however the plots after loading checkpoints were okay, so I changed train epoch to return preds as output instead of fake_images and also in 50 micron used minmax normalization)
+still discriminator loss is 0 so i chnaged depth from 4 to 2 and adam 0.5 to 0.99
+the error was that the idx used to check the condition to train discriminator was having value always zero
+
+standard ph2 using l1 (doing)
+lsgan ph2 using l1
+
+standard ph3 using l1 and classifier
+lsgan ph3 using l1 and classifier

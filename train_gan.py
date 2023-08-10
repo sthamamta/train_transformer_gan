@@ -24,7 +24,7 @@ from train_utils.standard_gan import StandardGANTrainer
 from train_utils.lsgan import LSGANTrainer
 from collections import OrderedDict
 
-os.environ["CUDA_VISIBLE_DEVICES"]='1'
+os.environ["CUDA_VISIBLE_DEVICES"]='0,1'
 
 def clean_opt(opt):
     opt.g_optimizer = None      
@@ -56,16 +56,55 @@ def load_state_dict_func(path):
     return new_state_dcit
 
 
+def compare_models(model1, model2):
+    # Get the parameters of each model
+    params1 = model1.parameters()
+    params2 = model2.parameters()
+
+    # Compare the parameters element-wise
+    for param1, param2 in zip(params1, params2):
+        if not torch.equal(param1, param2):
+            return False
+
+    return True
+
+
+
 def load_model(checkpoint_path, device):
     checkpoint = torch.load(checkpoint_path,map_location=torch.device(device))
+    model1 = ESRT(
+            upscale=checkpoint['upscale_factor'],
+            n_feats=checkpoint['n_feats'],
+            n_blocks=checkpoint['n_blocks'], 
+            kernel_size=checkpoint['kernel_size']
+            ).to(device=device)
+
     model = ESRT(
             upscale=checkpoint['upscale_factor'],
             n_feats=checkpoint['n_feats'],
             n_blocks=checkpoint['n_blocks'], 
             kernel_size=checkpoint['kernel_size']
             ).to(device=device)
+
     model_dict = load_state_dict_func(checkpoint['model_state_dict'])
+    # print("dictionary model",model_dict['reduce.bias'])
+    # print("*****************************************************************************************************")
+
+
     model.load_state_dict(model_dict,strict=False)
+
+
+    # for name, param in model1.named_parameters():
+    #     if name == 'reduce.bias':
+    #         print(f" Random model, Parameter name: {name}")
+    #         print(param)
+
+    # for name, param in model.named_parameters():
+    #     if name == 'reduce.bias':
+    #         print(f" Loaded model, Parameter name: {name}")
+    #         print(param)
+
+    # quit();
     return model
 
 
@@ -75,7 +114,7 @@ if __name__ == "__main__":
     '''get the configuration file'''
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', help="configuration file *.yml", type=str, required=False, 
-    default='train_config_yaml/ls_gan.yaml')
+    default='train_config_yaml/standard_gan.yaml')
     sys.argv = ['-f']
     opt   = parser.parse_known_args()[0]
 
@@ -126,7 +165,7 @@ if __name__ == "__main__":
     if opt.resume:
          # load checkpoint
         opt.generator = load_model(checkpoint_path=opt.checkpoint_path,device=device)
-        print("MOdel checkpoints loaded from {}".format(opt.checkpoint_path))
+        print("Model checkpoints loaded from {}".format(opt.checkpoint_path))
 
     else:
         opt.start_epoch = 0

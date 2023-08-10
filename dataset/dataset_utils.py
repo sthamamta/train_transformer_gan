@@ -136,15 +136,15 @@ def downsample_kspace(hr_image, upscale_factor= 2, gaussian = False, sigma = 75,
 
    ###### # data_pad = np.zeros((y,x),dtype=np.complex_)
 
-    # center_y = y//2 #defining the center of image in x and y direction
-    # center_x = x//2
-    # startx = center_x-(x//(upscale_factor*2))  
-    # starty = center_y-(y//(upscale_factor*2))
+    center_y = y//2 #defining the center of image in x and y direction
+    center_x = x//2
+    startx = center_x-(x//(upscale_factor*2))  
+    starty = center_y-(y//(upscale_factor*2))
     
-    # arr = fshift[starty:starty+(y//upscale_factor),startx:startx+(x//upscale_factor)]
+    arr = fshift[starty:starty+(y//upscale_factor),startx:startx+(x//upscale_factor)]
     
-    # img_reco_cropped = np.fft.ifft2(np.fft.ifftshift(arr)) 
-    # image = np.abs(img_reco_cropped )
+    img_reco_cropped = np.fft.ifft2(np.fft.ifftshift(arr)) 
+    image = np.abs(img_reco_cropped )
     
     if gaussian:
         if kspace_crop:
@@ -342,7 +342,7 @@ def prepare_lr_image(hr_image, degradation_method,upscale_factor):
         lr_image = downsample_bicubic(hr_image, upscale_factor)
 
     elif degradation_method == 'nearest':
-        print("inside nearest")
+        # print("inside nearest")
         lr_image = downsample_image_with_mode(array=hr_image,mode='nearest')
 
     elif degradation_method == 'bilinear':
@@ -356,7 +356,7 @@ def prepare_lr_image(hr_image, degradation_method,upscale_factor):
 
     elif degradation_method in ['kspace_gaussian_50','kspace_gaussian_75','kspace_gaussian_25','kspace_gaussian_100','kspace_gaussian_125','kspace_gaussian_150']:# higher signma means less
         sigma = int(degradation_method.split('_')[2])
-        lr_image = downsample_kspace(hr_image=hr_image, gaussian =True, sigma=sigma, kspace_crop=False)
+        lr_image = downsample_kspace(hr_image=hr_image, gaussian =True, sigma=sigma, kspace_crop=True)
  
     elif degradation_method == 'mean_blur':
         lr_image = generate_mean_blur_images(image_array=hr_image, kernel_size=3,upscale_factor=upscale_factor)

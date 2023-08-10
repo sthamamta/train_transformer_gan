@@ -1,8 +1,8 @@
 #configuration file
 
 
-model_name: 'esrt_gan'
-exp_name: 'esrt_factor_2_l1_ssim_tv_pyramid_all_degradation_version2'
+model_name: 'esrt'
+exp_name: 'esrt_l1_ph1'
 project_name: 'transformer_gan'
 wandb: True 
 
@@ -15,7 +15,8 @@ lr_patch_size: 100
 factor: 2
 
 #bicubic, nearest, bilinear, lanczos,kspace,kspace_gaussian_100,mean_blur,median_blur,hanning,hamming
-downsample_method: ['bicubic','nearest','bilinear','lanczos','kspace','kspace_gaussian_100','hanning', 'hamming', 'median_blur', 'mean_blur']  
+# downsample_method: ['bicubic','nearest','bilinear','lanczos','kspace','kspace_gaussian_100','hanning', 'hamming', 'median_blur', 'mean_blur']  
+downsample_method: ['bicubic','kspace_gaussian_100','hanning', 'hamming', 'median_blur', 'mean_blur']  
 augment: True
 normalize: True
 
@@ -23,7 +24,7 @@ normalize: True
 num_epochs: 3505
 n_freq: 100 # model checkpoint saving frequency
 plot_train_example: True
-train_batch_size: 8
+train_batch_size: 20
 num_workers: 8
 seed: 547
 
@@ -38,8 +39,9 @@ resume: False
 # checkpoint_path: 
 # start_epoch: 
 
-gen_loss_type: ['l1', 'ssim', 'tv_regularizer', 'laplacian_pyramid']
-gen_loss_wt: [0.1, 1.0, 0.01, 0.1]
+# gen_loss_type: ['l1', 'ssim', 'tv_regularizer', 'laplacian_pyramid']
+gen_loss_type: ['l1']
+gen_loss_wt: [1.0]
 
 
 #to set the save directory

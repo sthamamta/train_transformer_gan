@@ -19,8 +19,9 @@ def get_list(path, ext):
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-filepath = '../model_bias_experiment/mri_dataset_25/test'
-checkpoint_path = 'outputs/transformer_classifier/transformer_classifier_25_micron_gaussian/checkpoints/patch/patch-200/epoch_3480_f_2.pth'
+# filepath = '../model_bias_experiment/mri_dataset_25/test'
+filepath = 'results/l1_ssim/images'
+checkpoint_path = 'outputs/transformer_classifier/transformer_classifier_25_micron_gaussian/checkpoints/patch/patch-200/epoch_600_f_2.pth'
 
 ext = '.png'
 
@@ -97,12 +98,12 @@ def min_max_normalize(image):
     return norm_image 
 
 print("starting  a loop")
-downsample_method = 'kspace_gaussian_50'
+downsample_method = 'nearest'
 for imname in filelist:
     im_lr = cv2.imread(imname, cv2.IMREAD_UNCHANGED) 
 
     print('reached here')
-    im_lr = prepare_lr_image(im_lr,downsample_method, 1)
+    # im_lr = prepare_lr_image(im_lr,downsample_method, 1)
     im_input = min_max_normalize(im_lr)
 
 

@@ -9,7 +9,7 @@ def plot_image_patch(folder_directory, patch_size, output_directory):
 
     fig, axs = plt.subplots(num_rows, num_columns, figsize=(10, 10))
     files = ['lr_f1_160_z_71.png','lr_f1_160_z_108.png', 'lr_f5_153_z_48.png','lr_f5_153_z_78.png','lr_f5_153_z_110.png']
-    image_file = files[4]
+    image_file = files[3]
 
     for i, folder in enumerate(folder_directory):
         # Get image files in the folder
@@ -65,24 +65,34 @@ def plot_image_patch(folder_directory, patch_size, output_directory):
 folder_directory = [
     "results/hr_ref/images",
     "results/input_lr/images",
-     "results/ph1_l1_ssim_v2/images", 
-     "results/ph1_l1_ssim_v2_ema/images", 
-     "results/l1/images",
-     "results/mse/images",
-     "results/ph1_l1_ssim/images",
-     "results/l1_ssim_tv/images",
-     "results/l1_ssim_tv_pyramid/images"
+
+    #  "results/ph1_l1_ssim_v2/images", 
+    #  "results/ph1_l1_ssim_v2_ema/images", 
+    #  "results/l1/images",
+    #  "results/mse/images",
+    #  "results/ph1_l1_ssim/images",
+    #  "results/l1_ssim_tv/images",
+    #  "results/l1_ssim_tv_pyramid/images"
 
 
-        # "results/ph2_lsgan/images",
-        # "results/ph3_lsgan/images",
-        # "results/ph2_standard/images",
-        # "results/ph3_standard/images",
+        "results/ph2_lsgan/images",
+        "results/ph3_lsgan/images",
+        "results/ph2_standard/images",
+        "results/ph3_standard/images",
+        "results/ph2_standard_debug/images",
+        "results/ph2_standard_default/images",
+
+        # "results/l1/images",
         # "results/l1_ssim/images",
+        "results/bicubic/images",
+        # "results/nearest/images",
+        # "results/bilinear/images",
+        # "results/lanczos/images"
+
         ]
 
 patch_size = 200
-output_directory = "results/patch_plots_ph1"
+output_directory = "results/patch_plots_v4"
 
 if not os.path.exists(output_directory):
     os.makedirs(output_directory)

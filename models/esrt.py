@@ -263,6 +263,8 @@ class ESRT(nn.Module):
         own_state = self.state_dict()
         for name, param in state_dict.items():
             if name in own_state:
+                # print(name)
+                # print("*********************************")
                 if isinstance(param, nn.Parameter):
                     param = param.data
                 try:

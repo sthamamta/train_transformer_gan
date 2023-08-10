@@ -2,7 +2,7 @@
 
 info: 'Training discrimiantor network for classification'
 model_name: 'transformer_classifier'
-exp_name: 'transformer_classifier_25_micron_gaussian'
+exp_name: 'transformer_classifier_25_micron_all_degradation'
 project_name: 'rank_classifier'
 wandb: True 
 
@@ -12,7 +12,7 @@ train_label_dir: '../model_bias_experiment/mri_dataset_25/train'
 patch_size: 200  # this is the patch size of hr therefore the lr patch size will be hr_patch_size/factor
 lr_patch_size: 100
 
-downsample_method: ['kspace_gaussian_125','kspace_gaussian_50','kspace_gaussian_75','kspace_gaussian_100','hr']   
+downsample_method: ['kspace_gaussian_125','kspace_gaussian_50','kspace_gaussian_75','kspace_gaussian_150','kspace_gaussian_100','hr', 'bicubic', 'mean_blur', 'median_blur','hamming', 'hanning']   
 augment: False
 normalize: True
 
@@ -29,7 +29,7 @@ patch: True
 # transformer discriminator setting
 dist_patch_size: 10
 in_chans: 1
-num_classes: 5
+num_classes: 6
 embed_dim: 500
 num_heads: 4
 mlp_ratio: 4.
