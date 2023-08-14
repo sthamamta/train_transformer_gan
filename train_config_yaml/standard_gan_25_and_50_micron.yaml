@@ -1,8 +1,8 @@
 #configuration file
 
-info: 'Training standard gan phase 3 by loading the pretrained model from phase 2 ema'
+info: 'Training standard gan phase 3 by loading the pretrained model from phase 2'
 model_name: 'esrt_gan'
-exp_name: 'esrt_standard_gan(adv)_standard(l1_ssim_tv_pyramid)_ph3'
+exp_name: 'esrt_standard_gan(adv)_standard(l1)_ph3'
 project_name: 'transformer_gan'
 wandb: True 
 
@@ -24,7 +24,7 @@ normalize: True
 num_epochs: 2505
 n_freq: 50 # model checkpoint saving frequency
 plot_train_example: True
-train_batch_size: 8
+train_batch_size: 16
 num_workers: 8
 seed: 547
 d_iter: 2  #changed this from 1 to 5
@@ -38,7 +38,7 @@ eval_batch_size: 1   #set the val batch size to 1 always as we need to claculate
 
 resume: True
 # if resume True then
-checkpoint_path: 'outputs/esrt_gan/esrt_standardgan(l1_ssim_tv_pyramid)_(l1_ssim_tv_pyramid)_ph2/checkpoints/patch/patch-200/factor_2/ema_beta_0.9.pth'
+checkpoint_path: 'outputs/esrt_gan/esrt_standardgan(l1)_(l1)_ph2/checkpoints/patch/patch-200/factor_2/epoch_1300_f_2.pth'
 start_epoch: 0
 use_pixel_loss: False
 # gen_loss_type: ['tv_regularizer']

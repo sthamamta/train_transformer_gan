@@ -26,7 +26,7 @@ from train_utils.lsgan import LSGANTrainer
 from train_utils.standard_gan import StandardGANTrainer
 from collections import OrderedDict
 
-os.environ["CUDA_VISIBLE_DEVICES"]='0'
+os.environ["CUDA_VISIBLE_DEVICES"]='0,1'
 
 def clean_opt(opt):
     opt.g_optimizer = None      
