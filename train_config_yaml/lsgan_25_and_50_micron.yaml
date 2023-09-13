@@ -2,7 +2,7 @@
 
 info: 'phase 3 training of lsgan using the checkpoint from lsgan(l1,ssim)'
 model_name: 'esrt_gan'
-exp_name: 'esrt_gan_factor_2_lsgan_25_50_micron'
+exp_name: 'esrt_ls_gan(adv)_standard(l1)_ranker_loss_ph3'
 project_name: 'transformer_gan'
 wandb: True 
 
@@ -40,9 +40,10 @@ resume: True
 # if resume True then
 checkpoint_path: 'outputs/esrt_gan/esrt_gan_factor_2_lsgan(l1_ssim)_(l1_ssim)_all_degradation/checkpoints/patch/patch-200/factor_2/epoch_1320_f_2.pth'
 start_epoch: 0
-use_pixel_loss: False
-# gen_loss_type: ['l1']
-# gen_loss_wt: [1.0]
+use_pixel_loss: True
+gen_loss_type: ['ranker_loss']
+gen_loss_wt: [1.0]
+ranker_checkpoint_path: 'outputs/transformer_classifier/transformer_classifier_ranking_ph123hr/checkpoints/patch/patch-200/epoch_3500_f_2.pth'
 adversarial_weight: 1.0
 
 

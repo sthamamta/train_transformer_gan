@@ -10,7 +10,7 @@ from .dataset_utils import prepare_lr_image
 
 
 class MRIDataset(Dataset):
-    def __init__(self, label_dir,transform=None, scale_factor = 2,downsample_method=['bicubic'],patch_size = None, augment= True, normalize=True):
+    def __init__(self, label_dir,transform=None, scale_factor = 1,downsample_method=['kspace_gaussian_125','kspace_gaussian_150','kspace_gaussian_75','kspace_gaussian_100','hr'],patch_size = None, augment= True, normalize=True):
         self.label_dir = label_dir
         self.transform = transform
         self.labels = os.listdir(label_dir)
@@ -22,26 +22,33 @@ class MRIDataset(Dataset):
         self.augment = augment
         self.length_of_label_image =  len(self.labels)
 
-        self.downsample_list = []
-        self.labels_list = self.labels
-        print("length of labels list", len(self.labels_list))
-        for downsample_method in self.downsample_methods:
-            downsample_list_repeat = [downsample_method]* ((self.length_of_label_image)//len(self.downsample_methods))
-            self.downsample_list += downsample_list_repeat
-            # self.labels_list += self.labels
+        # self.downsample_list = []
+        # self.labels_list = []
+        # print("length of labels list", len(self.labels_list))
 
-        if len(self.downsample_list) != len(self.labels_list):
-            downsample_m = random.choice(self.downsample_methods) 
-            downsample_len =  self.length_of_label_image - ((self.length_of_label_image)//len(self.downsample_methods)*len(self.downsample_methods) )
-            downsample_list_repeat = [downsample_m] * downsample_len
-            self.downsample_list += downsample_list_repeat
-            
+        # for downsample_method in self.downsample_methods:
+        #     downsample_list_repeat = [downsample_method]* (self.length_of_label_image)
+        #     self.downsample_list += downsample_list_repeat
+        #     self.labels_list += self.labels
+
+        self.downsample_list = downsample_method
+        self.labels_list = self.labels
+        self.n_sample = 1800
+        while len(self.labels_list) < self.n_sample:
+            random_sample = random.choice(self.labels_list)
+            self.labels_list.append(random_sample)
+
+        while len(self.downsample_list) < self.n_sample:
+            random_sample = random.choice(self.downsample_list)
+            self.downsample_list.append(random_sample)
+
+        # print(self.labels_list)
+        # print(self.downsample_list)
         print("length of downsample list is ",len(self.downsample_list))
+        print("length of labels list", len(self.labels_list))
         assert len(self.downsample_list) == len(self.labels_list), ('list of label images and list of downsample method should have the same length, but got '
                                                 f'{len(self.downsample_list)} and {len(self.labels_list)}.')            
-
-        random.shuffle(self.downsample_list)
-        
+        # quit();
     def __len__(self):
         return len(self.labels_list)
 
@@ -54,9 +61,8 @@ class MRIDataset(Dataset):
         img = img[height_index: height_index+patch_size, width_index:width_index+patch_size]
         return img
 
-    def extract_patch_hr_lr(self,lr_image, hr_image, lr_patch_size):
+    def extract_patch_lr(self,lr_image, lr_patch_size):
         lr_height, lr_width = lr_image.shape
-        hr_height, hr_width = hr_image.shape
         
         # Generate a random index for the patch
         rand_y = np.random.randint(0, lr_height - lr_patch_size)
@@ -70,16 +76,8 @@ class MRIDataset(Dataset):
             
         # Extract the patch from LR image
         lr_patch = lr_image[rand_y:rand_y + lr_patch_size, rand_x:rand_x + lr_patch_size]
-        
-        # Calculate the corresponding HR patch index
-        hr_patch_size = lr_patch_size * 2  # Upscale factor of 2
-        hr_start_y = rand_y * 2
-        hr_start_x = rand_x * 2
-        
-        # Extract the patch from HR image
-        hr_patch = hr_image[hr_start_y:hr_start_y + hr_patch_size, hr_start_x:hr_start_x + hr_patch_size]
-        
-        return lr_patch, hr_patch
+       
+        return lr_patch
 
     def augment_image(self,img, hflip=True, rot=True):
         hflip = hflip and random.random() < 0.5
@@ -92,64 +90,61 @@ class MRIDataset(Dataset):
 
         return img
 
+    def get_label(self, downsample_method):
+        if downsample_method=='kspace_gaussian_50':
+            label = torch.tensor(0)
+        elif downsample_method == 'kspace_gaussian_75':
+            label = torch.tensor(1)
+        elif downsample_method in ['kspace_gaussian_100', 'hanning', 'hamming']:
+            label = torch.tensor(2)
+        elif downsample_method in ['kspace_gaussian_125', 'bicubic','mean_blur', 'median_blur']:
+            label = torch.tensor(3)
+        elif downsample_method == 'kspace_gaussian_150':
+            label = torch.tensor(4)
+        elif downsample_method == 'hr':
+            label = torch.tensor(5)
+        else:
+            print ("Label value not found for downsample method ", downsample_method)
+            label = None
+        return label
+
     def __getitem__(self, index):
 
         label_path = os.path.join(self.label_dir, self.labels_list[index])
         downsample_method = self.downsample_list[index]
-
-        # print("reading input image from :", input_path)
-        # print("reading label image from :", label_path)
-        # print(downsample_method)
+        label = self.get_label(downsample_method=downsample_method)
 
         #read hr image
         hr_image = cv2.imread(label_path, cv2.IMREAD_UNCHANGED)
 
-        # if self.augment:
-        #     hr_image = self.augment_image(hr_image,True,True)
-
-
-        # ***************************************************************************************************
-
-        # create hr patch
-        if self.patch_size is not None:
-            hr_image = self.create_patch(hr_image, self.patch_size)
-
         if self.augment:
             hr_image = self.augment_image(hr_image,True,True)
 
+        if downsample_method == 'hr':
+            lr_image = hr_image
+        else:
+            # create lr image
+            lr_image = prepare_lr_image(hr_image,downsample_method, self.scale_factor)
 
-        #********************************************************************************************************
-
-        # create lr image
-        lr_image = prepare_lr_image(hr_image,downsample_method, self.scale_factor)
-
-        # if self.patch_size is not None:
-        #     lr_image, hr_image = self.extract_patch_hr_lr(lr_image, hr_image, self.patch_size/self.scale_factor)
-
-        hr_image = hr_image[:lr_image.shape[0]* self.scale_factor,:lr_image.shape[1]* self.scale_factor]
-        
+        if self.patch_size is not None:
+            lr_image = self.extract_patch_lr(lr_image, self.patch_size)        
 
         #normalize input and label image
         if self.normalize:
             lr_image = min_max_normalize(lr_image)
-            hr_image = min_max_normalize(hr_image)
 
-        hr_image = torch.from_numpy(hr_image)
         lr_image = torch.from_numpy(lr_image)
 
         if self.transform is not None:
             lr_image = self.transform(lr_image)
-            hr_image = self.transform(hr_image)
-
         
         # adding the channel dimension
         lr_image = torch.unsqueeze(lr_image.float(),0)
-        hr_image = torch.unsqueeze(hr_image.float(),0)
 
-        # print("image path", label_path)
+
         # print("lr_image shape", lr_image.shape)
-        # print("hr image shape", hr_image.shape)
-        # print("******************************************************************************************************")
+        # print("downsample method", downsample_method)
+        # print("label value", label)
     
-        return {'lr': lr_image, 'hr':hr_image, 'index': index}
+        return {'lr': lr_image, 'label':label, 'index': index}
 

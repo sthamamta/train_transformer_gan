@@ -12,8 +12,8 @@ from torch.optim.lr_scheduler import StepLR
 from train_utils.general import AverageMeter
 from loss.rank_loss import RankLoss
 
-def forward_chop(model, x, shave=10, min_size=60000):
-    scale = 2   #self.scale[self.idx_scale]
+def forward_chop(model, x, shave=10, min_size=60000, scale=2):
+    # scale = 2   #self.scale[self.idx_scale]
     n_GPUs = 1    #min(self.n_GPUs, 4)
     b, c, h, w = x.size()
     h_half, w_half = h // 2, w // 2
@@ -409,14 +409,14 @@ class NoGanTrainer(object):
         images = images/255.
 
         images = torch.from_numpy(images).float().unsqueeze(0).unsqueeze(0)
-        print("shape of images is", images.shape)
-        print("range of image is", images.min(), images.max())
+        # print("shape of images is", images.shape)
+        # print("range of image is", images.min(), images.max())
 
         device = next(model.parameters()).device
         images = images.to(device)
 
         with torch.no_grad():
-            out = forward_chop(model, images) #model(im_input)
+            out = forward_chop( model= model,x= images, scale=self.factor) #model(im_input)
             torch.cuda.synchronize()
 
         # input_image =  images.squeeze().cpu().numpy().astype('float')

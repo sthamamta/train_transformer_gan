@@ -202,6 +202,7 @@ class Discriminator(nn.Module):
         # else:
         self.patch_embed = nn.Conv2d(self.in_chans, self.embed_dim, kernel_size=self.patch_size, stride=self.patch_size, padding=0)
         num_patches = (img_size // self.patch_size)**2
+        print("number of patches is", num_patches)
 
         self.cls_token = nn.Parameter(torch.zeros(1, 1, self.embed_dim))
         self.pos_embed = nn.Parameter(torch.zeros(1, num_patches + 1, self.embed_dim))

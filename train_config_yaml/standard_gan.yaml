@@ -2,7 +2,7 @@
 
 info: 'Training standard gan by loading the pretrained model (l1)'
 model_name: 'esrt_gan'
-exp_name: 'esrt_standardgan(l1)_(l1)_ph2'
+exp_name: 'esrt_standardgan(adv)_ph1'
 project_name: 'transformer_gan'
 wandb: True 
 
@@ -40,15 +40,15 @@ eval_freq: 100
 eval_batch_size: 1   #set the val batch size to 1 always as we need to claculate the psnr and ssim
 
 
-resume: True
+resume: False
 # if resume True then
 # checkpoint_path: 'outputs/esrt/esrt_l1_ph1/checkpoints/patch/patch-200/factor_2/epoch_3500_f_2.pth'
-checkpoint_path: 'outputs/esrt_gan/esrt_factor_2_l1_ssim_tv_regurlaizer_pyramid_loss_all_degradation/checkpoints/patch/patch-200/factor_2/epoch_2500_f_2.pth'
-start_epoch: 0
+# checkpoint_path: 'outputs/esrt_gan/esrt_factor_2_l1_ssim_tv_regurlaizer_pyramid_loss_all_degradation/checkpoints/patch/patch-200/factor_2/epoch_2500_f_2.pth'
+# start_epoch: 0
 
-use_pixel_loss: True
-gen_loss_type: ['l1']
-gen_loss_wt: [1.0]
+use_pixel_loss: False
+# gen_loss_type: ['l1']
+# gen_loss_wt: [1.0]
 adversarial_weight: 1.0
 
 
@@ -81,14 +81,14 @@ apply_sigmoid: True
 
 
 #optimizer for generator 
-g_lr: 0.00002
+g_lr: 0.000002
 g_optimizer_type: 'adam'
 g_lr_decay_factor: 0.98
 g_optimizer_betas: (0.99, 0.999)
 g_lr_schedular_step: 200
 
 # optimizer for discriminator
-d_lr: 0.00001
+d_lr: 0.000001
 d_optimizer_type: 'adam'
 d_lr_decay_factor: 0.95
 d_optimizer_betas: (0.99, 0.999)

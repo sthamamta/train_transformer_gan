@@ -7,6 +7,8 @@ import cv2
 import matplotlib.pyplot as plt
 import os
 
+
+from models.esrt import ESRT
 import torch.optim as optim
 
 
@@ -105,11 +107,41 @@ def load_model(checkpoint_path, device):
     return model
 
 
-loaded_model1 = load_model(checkpoint_path='demo_weights/epoch_0_f_2.pth', device=device)
-input = torch.rand(1,1,200,200).to(device=device)
-output1 = loaded_model1(input)
-loaded_model2 = load_model(checkpoint_path='demo_weights/epoch_40_f_2.pth', device=device)
-output2 = loaded_model2(input)
+# loaded_model1 = load_model(checkpoint_path='demo_weights/epoch_0_f_2.pth', device=device)
+# input = torch.rand(1,1,200,200).to(device=device)
+# output1 = loaded_model1(input)
+# loaded_model2 = load_model(checkpoint_path='demo_weights/epoch_40_f_2.pth', device=device)
+# output2 = loaded_model2(input)
 
-print(output1)
-print(output2)
+# print(output1)
+# print(output2)
+
+
+discriminator_model = Discriminator(img_size=120, patch_size=10, num_classes=1, embed_dim=500,num_heads=4, 
+mlp_ratio=4.,qkv_bias=False, qk_scale=None,drop_rate=0., attn_drop_rate=0., drop_path_rate=0., 
+ norm_layer='ln', depth=4, act_layer='gelu', apply_sigmoid=True)
+input_tensor = torch.rand(1,1,120,120)
+output_tensor = discriminator_model(input_tensor)
+print("shape of input tensor", input_tensor.shape)
+print("shape of output tensor", output_tensor.shape)
+# print(esrt_model)
+
+
+# esrt_model = ESRT(upscale=1)
+# input_tensor = torch.rand(1,1,200,200)
+# output_tensor = esrt_model(input_tensor)
+# print("shape of input tensor", input_tensor.shape)
+# print("shape of output tensor", output_tensor.shape)
+# # print(esrt_model)
+
+# input_tensor = torch.rand(1,1,100,100)
+# output_tensor = esrt_model(input_tensor)
+# print("shape of input tensor", input_tensor.shape)
+# print("shape of output tensor", output_tensor.shape)
+# # print(esrt_model)
+
+# input_tensor = torch.rand(1,1,120,120)
+# output_tensor = esrt_model(input_tensor)
+# print("shape of input tensor", input_tensor.shape)
+# print("shape of output tensor", output_tensor.shape)
+# # print(esrt_model)

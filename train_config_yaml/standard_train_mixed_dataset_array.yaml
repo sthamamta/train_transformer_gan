@@ -1,30 +1,30 @@
-#configuration file
+#configuration file, with this file onlt adversarial training is possible
 
-info: 'Training standard gan phase 3 by loading the pretrained model from phase 2'
+info: 'Training standard gan phase (2,3) by loading the pretrained model from phase 1 and mixed dataset'
 model_name: 'esrt_gan'
-exp_name: 'esrt_factor_1_standard_gan(adv)_chckpoint(ph1,l1)_25_50_micron_array_data'
+exp_name: 'esrt_factor_1_standard_gan(adv)_chckpoint(ph1,l1)_25_50_micron_array_data_mixed_dataset(v2_3500)'
 project_name: 'transformer_gan'
 wandb: True 
 
 
 #dataset class setting
-# train_input_path: '../model_bias_experiment/mri_dataset_50/train'
-# train_label_path: '../model_bias_experiment/mri_dataset_25/train'
-train_input_path: '../array_data/50/'
-train_label_path: '../array_data/25/'
+train_input_dir: '../array_data/50/'
+train_label_dir: '../array_data/25/'
 train_dictionary_path: '../model_bias_experiment/mri_dataset_50/lr_hr_dictionary.pkl'
 patch_size: 120  # this is the patch size of hr therefore the lr patch size will be hr_patch_size/factor
 lr_patch_size: 120
 factor: 1
 
+downsample_method: ['bicubic','kspace_gaussian_150','hanning', 'hamming', 'mean_blur', 'median_blur']  
+upsample_image: True
+
 gan_loss_type: 'standard'
 
 augment: False
 normalize: True
-upsample_image: True
 
 #training settings
-num_epochs: 3505
+num_epochs: 2505
 n_freq: 50 # model checkpoint saving frequency
 plot_train_example: True
 train_batch_size: 8
@@ -41,7 +41,7 @@ eval_batch_size: 1   #set the val batch size to 1 always as we need to claculate
 
 resume: True
 # if resume True then
-checkpoint_path: 'outputs/esrt/esrt_factor_1_l1_ph1_raw_array_train/checkpoints/patch/patch-120/factor_1/epoch_1200_f_1.pth'
+checkpoint_path: 'outputs/esrt/esrt_factor_1_l1_ph1_raw_array_train/checkpoints/patch/patch-120/factor_1/epoch_3500_f_1.pth'
 start_epoch: 0
 use_pixel_loss: False
 

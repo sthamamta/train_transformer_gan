@@ -5,7 +5,8 @@
 import torch
 # from utils.preprocess import 
 import torch.nn as nn
-from dataset.dataset import MRIDataset
+# from dataset.dataset import MRIDataset
+from dataset.dataset_array_simulated import MRIDataset
 import torch.optim as optim
 # from loss.content_loss import ContentLoss
 import pickle
@@ -38,7 +39,7 @@ def load_train_dataset(opt):
                             augment=opt.augment,
                             normalize=opt.normalize)
     train_dataloader = torch.utils.data.DataLoader(train_datasets, batch_size = opt.train_batch_size,shuffle=True,
-        num_workers=8,pin_memory=False,drop_last=False)
+        num_workers=1,pin_memory=False,drop_last=False)
 
     return train_dataloader,train_datasets
 

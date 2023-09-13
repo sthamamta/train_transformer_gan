@@ -2,7 +2,7 @@
 
 info: 'TRaining realistic gan by loading the pretrained model'
 model_name: 'esrt_gan'
-exp_name: 'esrt_gan_factor_2_gan_Loss_tv_regularizer_all_degradation_25_50_micron'
+exp_name: 'esrt_realistic_gan(adv)_realistic_gan(l1)__ph3'
 project_name: 'transformer_gan'
 wandb: True 
 
@@ -24,7 +24,7 @@ normalize: True
 num_epochs: 2505
 n_freq: 30 # model checkpoint saving frequency
 plot_train_example: True
-train_batch_size: 8
+train_batch_size: 16
 num_workers: 8
 seed: 547
 d_iter: 1
@@ -38,7 +38,7 @@ eval_batch_size: 1   #set the val batch size to 1 always as we need to claculate
 
 resume: True
 # if resume True then
-checkpoint_path: 'outputs/esrt_gan/esrt_gan_factor_2_L1_loss_gan_Loss_all_degradation/checkpoints/patch/patch-200/factor_2/epoch_1500_f_2.pth'
+checkpoint_path: 'outputs/esrt_gan/esrt_realistic_gan(l1)_(l1)_ph2/checkpoints/patch/patch-200/factor_2/epoch_2500_f_2.pth'
 start_epoch: 0
 use_pixel_loss: False
 # gen_loss_type: ['l1']
@@ -74,15 +74,15 @@ apply_sigmoid: False
 
 
 #optimizer for generator 
-g_lr: 0.0001
+g_lr: 0.00002
 g_optimizer_type: 'adam'
 g_lr_decay_factor: 0.98
-g_optimizer_betas: (0.99, 0.5)
-g_lr_schedular_step: 30
+g_optimizer_betas: (0.99, 0.99)
+g_lr_schedular_step: 100
 
 # optimizer for discriminator
-d_lr: 0.0001
+d_lr: 0.00001
 d_optimizer_type: 'adam'
 d_lr_decay_factor: 0.95
 d_optimizer_betas: (0.99, 0.999)
-d_lr_schedular_step: 30
+d_lr_schedular_step: 100

@@ -13,10 +13,6 @@ import pdb
 import math
 
 def make_model(upscale=4):
-    # inpu = torch.randn(1, 3, 320, 180).cpu()
-    # flops, params = profile(RTC(upscale).cpu(), inputs=(inpu,))
-    # print(params)
-    # print(flops)
     return ESRT(upscale=upscale)
 
 
@@ -179,7 +175,7 @@ class Un(nn.Module):
         return self.weight1(x) + self.weight2(out)
         
 class ESRT(nn.Module):
-    def __init__(self, upscale=4, n_feats= 16, n_blocks=1, kernel_size=3, conv=common.default_conv):
+    def __init__(self, upscale = 4, n_feats= 16, n_blocks=1, kernel_size=3, conv=common.default_conv):
         super(ESRT, self).__init__()
         wn = lambda x:torch.nn.utils.weight_norm(x)
         self.n_feats = n_feats

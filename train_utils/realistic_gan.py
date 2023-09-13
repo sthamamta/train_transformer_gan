@@ -261,7 +261,7 @@ class RealisticGANTrainer(Trainer):
         start_time = time.time()
         with tqdm(total=(len(self.train_dataset) - len(self.train_dataset) % self.train_batch_size), ncols=80) as t:
             t.set_description('epoch: {}/{}'.format(epoch, self.num_epochs - 1))
-
+            idx_new = 0
             for idx, (data) in enumerate(self.train_dataloader):
                 images = data['lr'].to(self.device)
                 labels = data['hr'].to(self.device)
@@ -310,7 +310,7 @@ class RealisticGANTrainer(Trainer):
 
 
                 # training discriminator
-                if (idx + 1) % self.d_iter == 0:
+                if (idx_new + 1) % self.d_iter == 0:
                     self.set_requires_grad(self.D,True)
                     self.d_optimizer.zero_grad()
 
@@ -335,6 +335,8 @@ class RealisticGANTrainer(Trainer):
                     epoch_losses['loss_D'].update(loss_D.item(), batch_size)
                     epoch_losses['loss_D_real'].update(loss_D_real.item(), batch_size)
                     epoch_losses['loss_D_fake'].update(loss_D_fake.item(), batch_size)
+
+                idx_new = idx_new+1
 
             epoch_losses['loss_G_fake'].update(d_loss_sr.item(), batch_size)
             epoch_losses['loss_G_real'].update(d_loss_gt.item(), batch_size)

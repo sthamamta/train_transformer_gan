@@ -2,3 +2,5 @@ __pycache__
 wandb/
 outputs/
 results/
+outputs1/
+classifier_dataset/

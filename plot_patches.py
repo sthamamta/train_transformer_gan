@@ -5,11 +5,13 @@ from PIL import Image
 def plot_image_patch(folder_directory, patch_size, output_directory):
     num_images = len(folder_directory)
     num_columns = int(num_images ** 0.5) + 1
+    # num_columns = 4
     num_rows = (num_images // num_columns) + 1
+    # num_rows =1
 
     fig, axs = plt.subplots(num_rows, num_columns, figsize=(10, 10))
     files = ['lr_f1_160_z_71.png','lr_f1_160_z_108.png', 'lr_f5_153_z_48.png','lr_f5_153_z_78.png','lr_f5_153_z_110.png']
-    image_file = files[3]
+    image_file = files[4]
 
     for i, folder in enumerate(folder_directory):
         # Get image files in the folder
@@ -64,7 +66,24 @@ def plot_image_patch(folder_directory, patch_size, output_directory):
 # folder_directory = ["results/bicubic_upsample", "results/bilinear_upsample", "results/nearest_upsample", "results/l1_loss", "results/mse_loss", "results/ssim_loss"]
 folder_directory = [
     "results/hr_ref/images",
-    "results/input_lr/images",
+     "results/bicubic/images",
+    # "results/input_lr/images",
+    # "results/standard_(adv_only)_real/images",
+    # "results/standard_(adv_only)_simulated/images",
+    # "results/l1_ph1_factor1/images",
+    # "results/mixed_ph23_f1/images",
+    # "results/real_ph3_f1/images",
+    
+    "results/l1_ph1_factor1_raw_data/images",
+
+    "results/standard_real_raw_inp/images",
+    "results/standard_mixed_raw_inp/images",
+    
+    
+
+
+
+    #  "results/l1/images",
 
     #  "results/ph1_l1_ssim_v2/images", 
     #  "results/ph1_l1_ssim_v2_ema/images", 
@@ -75,16 +94,21 @@ folder_directory = [
     #  "results/l1_ssim_tv_pyramid/images"
 
 
-        "results/ph2_lsgan/images",
-        "results/ph3_lsgan/images",
-        "results/ph2_standard/images",
-        "results/ph3_standard/images",
-        "results/ph2_standard_debug/images",
-        "results/ph2_standard_default/images",
+        # "results/standard_l1_ph2/images",
+        # "results/standard_l1_ph3/images",
+        # "results/standard_l1_ranker_ph3/images",
+        # "results/ph3_lsgan/images",
+        # "results/lsgan_l1_ph2/images",
+        # "results/ph3_standard/images",
+        # "results/ph2_standard_debug/images",
+        # "results/ph2_standard_default/images",
 
         # "results/l1/images",
+        # "results/mse/images",
+        # "results/ssim/images",
         # "results/l1_ssim/images",
-        "results/bicubic/images",
+        # "results/l1_ssim_tv/images",
+
         # "results/nearest/images",
         # "results/bilinear/images",
         # "results/lanczos/images"
@@ -92,7 +116,7 @@ folder_directory = [
         ]
 
 patch_size = 200
-output_directory = "results/patch_plots_v4"
+output_directory = "results/exp_with_raw"
 
 if not os.path.exists(output_directory):
     os.makedirs(output_directory)

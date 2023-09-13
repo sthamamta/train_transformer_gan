@@ -46,7 +46,7 @@ def load_model(checkpoint_path, device):
 
 # measures the mse or l1 loss between the gram matrix of output and label images
 class RankLoss(nn.Module):
-    def __init__(self, checkpoint_path='', device = 'cuda'):
+    def __init__(self, checkpoint_path='outputs/transformer_classifier/transformer_classifier_ranking_ph123hr/checkpoints/patch/patch-200/epoch_3500_f_2.pth', device = 'cuda'):
         super().__init__()
         
         self.ranker = load_model(checkpoint_path=checkpoint_path, device=device)
@@ -60,5 +60,7 @@ class RankLoss(nn.Module):
 
     def __call__(self, images):
         prediction= self.ranker(images)
-        loss = self.cross_entrophy_loss(prediction, self.label)
+        batch_size = prediction.shape[0]
+        expanded_labels = self.label.expand(batch_size)
+        loss = self.cross_entrophy_loss(prediction, expanded_labels)
         return loss

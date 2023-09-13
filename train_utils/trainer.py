@@ -10,8 +10,8 @@ from loss.tv_regularizer import TVRegularizer
 from loss.rank_loss import RankLoss
 
 
-def forward_chop(model, x, shave=10, min_size=60000):
-    scale = 2   #self.scale[self.idx_scale]
+def forward_chop(model, x, shave=10, min_size=60000, scale=2):
+    # scale = 2   #self.scale[self.idx_scale]
     n_GPUs = 1    #min(self.n_GPUs, 4)
     b, c, h, w = x.size()
     h_half, w_half = h // 2, w // 2
@@ -187,7 +187,7 @@ class Trainer(object):
                 self.generator_loss_key_list.append('tv_regularizer')
             elif loss in ['ranker_loss','ranker', 'classification_loss', 'classification']:
                 print("Using Ranker Loss")
-                self.gen_losses['ranker_loss'] = RankLoss(checkpoint_path=self.args.ranker_checkpoint_path, device=self.devie)
+                self.gen_losses['ranker_loss'] = RankLoss(checkpoint_path=self.args.ranker_checkpoint_path, device=self.device)
                 self.generator_loss_key_list.append('ranker_loss')
 
     def val_epoch(self):
@@ -278,7 +278,7 @@ class Trainer(object):
         images = images.to(device)
 
         with torch.no_grad():
-            out = forward_chop(model, images) #model(im_input)
+            out = forward_chop( model= model,x= images, scale=self.args.factor) #model(im_input)
             torch.cuda.synchronize()
         
         out = (out-out.min())/(out.max()-out.min())  #minmax normalize the image

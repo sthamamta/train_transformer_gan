@@ -60,36 +60,60 @@ def prepare_lr_array(hr_array,factor=2,pad=True):
 
 
 
-def downsample_bicubic(hr_image,upscale_factor=2, double_downsample=False):
+# def downsample_bicubic(hr_image,upscale_factor=2, double_downsample=False, same_size = False):
+
+#     hr_image = hr_image.astype(np.uint8)
+#     image = Image.fromarray(hr_image)
+
+#     x,y = image.size
+    
+#     if double_downsample:
+#         shape = (x//(2*upscale_factor), y//(2*upscale_factor))  #downsample by factor 4
+#     else:
+#         shape = (x//(upscale_factor), y//(upscale_factor))  #downsample by factor 2
+
+#     image = image.resize(shape,Image.BICUBIC)
+
+#     if double_downsample:
+#         shape = (x//upscale_factor, y//upscale_factor)  #upsample by factor 2
+#         image = image.resize(shape,Image.BICUBIC)
+
+#     if same_size:
+#         shape1 = (x,y)
+#         image = image.resize(shape1,Image.BICUBIC)
+
+#     image = np.array(image).astype(np.float32)
+#     # image = min_max_normalize(image)
+
+#     return image
 
 
-    # hr_image = min_max_normalize(hr_image)
-    # hr_image = hr_image * 255.
+def downsample_bicubic(hr_image,upscale_factor=2, double_downsample=False, same_size = False):
 
-
-    hr_image = hr_image.astype(np.uint8)
-    image = Image.fromarray(hr_image)
-
-    x,y = image.size
+    x,y = hr_image.shape
     
     if double_downsample:
         shape = (x//(2*upscale_factor), y//(2*upscale_factor))  #downsample by factor 4
     else:
         shape = (x//(upscale_factor), y//(upscale_factor))  #downsample by factor 2
 
-    image = image.resize(shape,Image.BICUBIC)
+    image = cv2.resize(hr_image, shape, interpolation=cv2.INTER_CUBIC)
 
     if double_downsample:
         shape = (x//upscale_factor, y//upscale_factor)  #upsample by factor 2
-        image = image.resize(shape,Image.BICUBIC)
+        image = cv2.resize(image, shape, interpolation=cv2.INTER_CUBIC)
 
-    image = np.array(image).astype(np.float32)
-    # image = min_max_normalize(image)
+    if same_size:
+        shape1 = (x,y)
+        image = cv2.resize(image, shape1, interpolation=cv2.INTER_CUBIC)
+
 
     return image
 
 
-def downsample_image_with_mode(array,factor=2, mode='Lanczos',double_downsample = False):
+
+
+def downsample_image_with_mode(array,factor=2, mode='Lanczos',double_downsample = False, same_size=False):
 
     # array = min_max_normalize(array)
     # array = hr_image * 255.
@@ -123,6 +147,15 @@ def downsample_image_with_mode(array,factor=2, mode='Lanczos',double_downsample 
     image = np.array(image).astype(np.float32)
     # image = min_max_normalize(image)
 
+    if same_size:
+        shape = (x, y)  #upsample by factor -> factor
+        if mode in ['nearest','Nearest']:
+            image = image.resize(shape,Image.NEAREST)
+        elif mode in ['bilinear','Bilinear']:
+            image = image.resize(shape,Image.BILINEAR)
+        elif mode in ['lanczos','Lanczos']:
+            image = image.resize(shape,Image.LANCZOS)
+
     return image   
 
     
@@ -155,7 +188,9 @@ def downsample_kspace(hr_image, upscale_factor= 2, gaussian = False, sigma = 75,
 
     return image
 
-def downsample_kspace_han_ham(hr_image, upscale_factor= 2, method = 'han'):
+
+
+def downsample_kspace_han_ham(hr_image, upscale_factor= 2, method = 'han', same_size=False):
 
     F = np.fft.fft2(hr_image)
     fshift = np.fft.fftshift(F)
@@ -169,7 +204,10 @@ def downsample_kspace_han_ham(hr_image, upscale_factor= 2, method = 'han'):
     startx = center_x-(x//(upscale_factor*2))  
     starty = center_y-(y//(upscale_factor*2))
     
-    arr = fshift[starty:starty+(y//upscale_factor),startx:startx+(x//upscale_factor)]
+    if same_size:
+        arr = fshift
+    else:
+        arr = fshift[starty:starty+(y//upscale_factor),startx:startx+(x//upscale_factor)]
 
     if method in ['han', 'hanning']:
         filter = get_hanning_filter(arr.shape,factor=upscale_factor)
@@ -270,28 +308,30 @@ def get_hanning_filter(shape,factor=5):
     return mask_lower
 
 
-def generate_mean_blur_images(image_array, kernel_size=3, upscale_factor=2):
+def generate_mean_blur_images(image_array, kernel_size=3, upscale_factor=2, same_size=False):
     '''
     prepare mean blur
     '''
-    # image_array = min_max_normalize(image_array)
-    # image_array = image_array * 255.
 
-    F = np.fft.fft2(image_array)
-    fshift = np.fft.fftshift(F)
-    
-    y,x = fshift.shape
+    if same_size:
+        img_recon = image_array
+    else:
+        F = np.fft.fft2(image_array)
+        fshift = np.fft.fftshift(F)
+        
+        y,x = fshift.shape
 
-    # data_pad = np.zeros((y,x),dtype=np.complex_)
+        # data_pad = np.zeros((y,x),dtype=np.complex_)
 
-    center_y = y//2 #defining the center of image in x and y direction
-    center_x = x//2
-    startx = center_x-(x//(upscale_factor*2))  
-    starty = center_y-(y//(upscale_factor*2))
-    
-    arr = fshift[starty:starty+(y//upscale_factor),startx:startx+(x//upscale_factor)]
+        center_y = y//2 #defining the center of image in x and y direction
+        center_x = x//2
+        startx = center_x-(x//(upscale_factor*2))  
+        starty = center_y-(y//(upscale_factor*2))
+        
+        arr = fshift[starty:starty+(y//upscale_factor),startx:startx+(x//upscale_factor)]
 
-    img_recon = np.abs(np.fft.ifft2(np.fft.ifftshift(arr)))
+        img_recon = np.abs(np.fft.ifft2(np.fft.ifftshift(arr)))
+
 
     ksize = (kernel_size, kernel_size)  
     mean_blur = cv2.blur(img_recon, ksize, cv2.BORDER_DEFAULT) 
@@ -301,28 +341,30 @@ def generate_mean_blur_images(image_array, kernel_size=3, upscale_factor=2):
 
 #********************************************************************************************************************
 
-def generate_median_blur_images(image_array, kernel_size=3, upscale_factor=2):
+def generate_median_blur_images(image_array, kernel_size=3, upscale_factor=2, same_size= False):
     '''
     prepare median blur
     '''
     # image_array = (image_array - image_array.min())/ (image_array.max()-image_array.min()) 
     # image_array = image_array * 255.
 
-    F = np.fft.fft2(image_array)
-    fshift = np.fft.fftshift(F)
-    
-    y,x = fshift.shape
+    if same_size:
+        img_recon = image_array
+    else:
+        F = np.fft.fft2(image_array)
+        fshift = np.fft.fftshift(F)
+        
+        y,x = fshift.shape
 
-    # data_pad = np.zeros((y,x),dtype=np.complex_)
+        # data_pad = np.zeros((y,x),dtype=np.complex_)
 
-    center_y = y//2 #defining the center of image in x and y direction
-    center_x = x//2
-    startx = center_x-(x//(upscale_factor*2))  
-    starty = center_y-(y//(upscale_factor*2))
-    
-    arr = fshift[starty:starty+(y//upscale_factor),startx:startx+(x//upscale_factor)]
+        center_y = y//2 #defining the center of image in x and y direction
+        center_x = x//2
+        startx = center_x-(x//(upscale_factor*2))  
+        starty = center_y-(y//(upscale_factor*2))
+        arr = fshift[starty:starty+(y//upscale_factor),startx:startx+(x//upscale_factor)]
+        img_recon = np.abs(np.fft.ifft2(np.fft.ifftshift(arr)))
 
-    img_recon = np.abs(np.fft.ifft2(np.fft.ifftshift(arr)))
 
     median_blur = cv2.medianBlur(img_recon.astype('float32'),kernel_size)
 
@@ -338,40 +380,45 @@ def generate_hanning_blur(image_array, factor=2):
 
 def prepare_lr_image(hr_image, degradation_method,upscale_factor):
 
+    if upscale_factor == 1:
+        same_size = True
+    else:
+        same_size = False
+
     if degradation_method == 'bicubic':
-        lr_image = downsample_bicubic(hr_image, upscale_factor)
+        lr_image = downsample_bicubic(hr_image= hr_image, upscale_factor= 2, same_size=same_size)
 
     elif degradation_method == 'nearest':
         # print("inside nearest")
-        lr_image = downsample_image_with_mode(array=hr_image,mode='nearest')
+        lr_image = downsample_image_with_mode(array = hr_image,mode = 'nearest', same_size = same_size)
 
     elif degradation_method == 'bilinear':
-        lr_image = downsample_image_with_mode(array=hr_image,mode='bilinear')
+        lr_image = downsample_image_with_mode(array = hr_image,mode = 'bilinear', same_size = same_size)
 
     elif degradation_method == 'lanczos':
-        lr_image = downsample_image_with_mode(array=hr_image,mode='lanczos')
+        lr_image = downsample_image_with_mode(array = hr_image,mode = 'lanczos', same_size = same_size)
 
     elif degradation_method in ['crop_kspace','kspace']:
         lr_image = downsample_kspace(hr_image, upscale_factor)
 
     elif degradation_method in ['kspace_gaussian_50','kspace_gaussian_75','kspace_gaussian_25','kspace_gaussian_100','kspace_gaussian_125','kspace_gaussian_150']:# higher signma means less
         sigma = int(degradation_method.split('_')[2])
-        lr_image = downsample_kspace(hr_image=hr_image, gaussian =True, sigma=sigma, kspace_crop=True)
+        lr_image = downsample_kspace(hr_image=hr_image, gaussian =True, sigma=sigma, kspace_crop = False)
  
     elif degradation_method == 'mean_blur':
-        lr_image = generate_mean_blur_images(image_array=hr_image, kernel_size=3,upscale_factor=upscale_factor)
+        lr_image = generate_mean_blur_images(image_array=hr_image, kernel_size=3,upscale_factor=upscale_factor, same_size=same_size)
 
     elif degradation_method == 'median_blur':
-        lr_image = generate_median_blur_images(image_array=hr_image, kernel_size=3, upscale_factor=upscale_factor)
+        lr_image = generate_median_blur_images(image_array=hr_image, kernel_size=3, upscale_factor=upscale_factor, same_size=same_size)
 
     elif degradation_method in ['han','hann','hanning']:
-        lr_image = downsample_kspace_han_ham(hr_image, upscale_factor= 2, method = 'han')
+        lr_image = downsample_kspace_han_ham(hr_image, upscale_factor= 2, method = 'han', same_size=same_size)
 
     elif degradation_method in ['ham','hamming','hamm']:
-        lr_image = downsample_kspace_han_ham(hr_image, upscale_factor= 2, method = 'hamm')
+        lr_image = downsample_kspace_han_ham(hr_image, upscale_factor= 2, method = 'hamm', same_size=same_size)
 
     else:
         print("using default")
-        lr_image = downsample_bicubic(hr_image)
+        lr_image = downsample_bicubic(hr_image, same_size=same_size)
 
     return lr_image

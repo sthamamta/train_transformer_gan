@@ -7,43 +7,78 @@ from utils.preprocess import min_max_normalize
 import cv2
 import random
 from .dataset_utils import prepare_lr_image
-
+import nibabel as nib
 
 class MRIDataset(Dataset):
-    def __init__(self, label_dir,transform=None, scale_factor = 2,downsample_method=['bicubic'],patch_size = None, augment= True, normalize=True):
+    def __init__(self, label_dir,transform=None, axis=2,scale_factor = 1,downsample_method=['bicubic'],patch_size = None, augment= True, normalize=True):
+        
+        self.axis = axis
+
         self.label_dir = label_dir
         self.transform = transform
-        self.labels = os.listdir(label_dir)
+
+        # self.labels = os.listdir(label_dir)
+        self.labels_array = self.prepare_array()
+
         self.downsample_methods = downsample_method
         self.patch_size = patch_size
         self.scale_factor = scale_factor
 
         self.normalize = normalize
         self.augment = augment
-        self.length_of_label_image =  len(self.labels)
+
+        self.length_of_label_image =  self.labels_array.shape[self.axis]
 
         self.downsample_list = []
-        self.labels_list = self.labels
-        print("length of labels list", len(self.labels_list))
+
+        print("length of labels list", self.length_of_label_image)
         for downsample_method in self.downsample_methods:
             downsample_list_repeat = [downsample_method]* ((self.length_of_label_image)//len(self.downsample_methods))
             self.downsample_list += downsample_list_repeat
             # self.labels_list += self.labels
 
-        if len(self.downsample_list) != len(self.labels_list):
+        if len(self.downsample_list) != self.length_of_label_image:
             downsample_m = random.choice(self.downsample_methods) 
             downsample_len =  self.length_of_label_image - ((self.length_of_label_image)//len(self.downsample_methods)*len(self.downsample_methods) )
             downsample_list_repeat = [downsample_m] * downsample_len
             self.downsample_list += downsample_list_repeat
             
         print("length of downsample list is ",len(self.downsample_list))
-        assert len(self.downsample_list) == len(self.labels_list), ('list of label images and list of downsample method should have the same length, but got '
-                                                f'{len(self.downsample_list)} and {len(self.labels_list)}.')            
+        assert len(self.downsample_list) == self.length_of_label_image, ('list of label images and list of downsample method should have the same length, but got '
+                                                f'{len(self.downsample_list)} and {self.length_of_label_image}.')            
 
         random.shuffle(self.downsample_list)
+        print("Raw dataset")
         
     def __len__(self):
-        return len(self.labels_list)
+        return self.length_of_label_image
+
+
+    def prepare_array(self):
+        labels_list = os.listdir(self.label_dir)
+        for index,file_array in enumerate(labels_list):
+            if file_array == 'f4_25.nii':
+                pass
+            else:
+                file_path =  os.path.join(self.label_dir, file_array)
+                single_array = self.read_array(file_path)
+                single_array = single_array[:,:,20:261]
+                if index == 0:
+                    array_full = single_array
+                else:
+                    array_full =  np.concatenate((array_full, single_array), axis=2)
+                
+        return array_full
+
+
+    def read_array(self, file_path):
+        img = nib.load(file_path)
+        affine_mat=img.affine
+        hdr = img.header
+        data = img.get_fdata()
+        data_norm = data
+        return data_norm
+
 
     def create_patch(self,img, patch_size):
         height, width = img.shape
@@ -94,22 +129,14 @@ class MRIDataset(Dataset):
 
     def __getitem__(self, index):
 
-        label_path = os.path.join(self.label_dir, self.labels_list[index])
+        hr_image = self.labels_array[:,:,index]
         downsample_method = self.downsample_list[index]
 
         # print("reading input image from :", input_path)
         # print("reading label image from :", label_path)
         # print(downsample_method)
 
-        #read hr image
-        hr_image = cv2.imread(label_path, cv2.IMREAD_UNCHANGED)
-
-        # if self.augment:
-        #     hr_image = self.augment_image(hr_image,True,True)
-
-
-        # ***************************************************************************************************
-
+       
         # create hr patch
         if self.patch_size is not None:
             hr_image = self.create_patch(hr_image, self.patch_size)
@@ -123,8 +150,7 @@ class MRIDataset(Dataset):
         # create lr image
         lr_image = prepare_lr_image(hr_image,downsample_method, self.scale_factor)
 
-        # if self.patch_size is not None:
-        #     lr_image, hr_image = self.extract_patch_hr_lr(lr_image, hr_image, self.patch_size/self.scale_factor)
+        # print("lr shape after preparation", lr_image.shape)
 
         hr_image = hr_image[:lr_image.shape[0]* self.scale_factor,:lr_image.shape[1]* self.scale_factor]
         
@@ -146,7 +172,6 @@ class MRIDataset(Dataset):
         lr_image = torch.unsqueeze(lr_image.float(),0)
         hr_image = torch.unsqueeze(hr_image.float(),0)
 
-        # print("image path", label_path)
         # print("lr_image shape", lr_image.shape)
         # print("hr image shape", hr_image.shape)
         # print("******************************************************************************************************")

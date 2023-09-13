@@ -66,11 +66,10 @@ if __name__ == "__main__":
    
 
     '''load dataset (loading dataset based on dataset name and factor on arguments)'''
-    opt.train_dataset = MRIDataset(label_dir = opt.train_label_dir,  
-                            downsample_method= opt.downsample_method,
-                            patch_size=opt.patch_size,
+    opt.train_dataset = MRIDataset( patch_size=opt.patch_size,
                             augment = opt.augment,
                             normalize = opt.normalize)
+                            
     opt.train_dataloader = torch.utils.data.DataLoader(opt.train_dataset, batch_size = opt.train_batch_size,shuffle=True,
         num_workers=1,pin_memory=False,drop_last=False)
 
@@ -145,7 +144,7 @@ if __name__ == "__main__":
 
 
     if opt.wandb:
-        wandb.unwatch(opt.generator)
+        wandb.unwatch(opt.model)
         wandb.finish()
 
 

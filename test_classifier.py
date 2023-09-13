@@ -20,8 +20,8 @@ def get_list(path, ext):
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # filepath = '../model_bias_experiment/mri_dataset_25/test'
-filepath = 'results/l1_ssim/images'
-checkpoint_path = 'outputs/transformer_classifier/transformer_classifier_25_micron_gaussian/checkpoints/patch/patch-200/epoch_600_f_2.pth'
+filepath = 'results/ph3_standard/images'
+checkpoint_path = 'outputs/transformer_classifier/transformer_classifier_ranking_ph123hr/checkpoints/patch/patch-200/epoch_3500_f_2.pth'
 
 ext = '.png'
 
@@ -67,7 +67,8 @@ def load_model(checkpoint_path, device):
     return model
 
 model = load_model(checkpoint_path=checkpoint_path, device=device)
-
+print(model)
+quit();
 
 i = 0
 

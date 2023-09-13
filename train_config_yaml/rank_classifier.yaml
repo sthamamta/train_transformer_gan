@@ -1,24 +1,23 @@
 #configuration file
 
-info: 'Training discrimiantor network for classification'
+info: 'Training discrimiantor network for classification of output images of phase 1,2,3 and hr'
 model_name: 'transformer_classifier'
-exp_name: 'transformer_classifier_25_micron_all_degradation'
+exp_name: 'transformer_classifier_ranking_ph123hr'
 project_name: 'rank_classifier'
 wandb: True 
 
 
 #dataset class setting
-train_label_dir: '../model_bias_experiment/mri_dataset_25/train'
+# train_label_dir: '../model_bias_experiment/mri_dataset_25/train'
 patch_size: 200  # this is the patch size of hr therefore the lr patch size will be hr_patch_size/factor
 lr_patch_size: 100
 
-downsample_method: ['kspace_gaussian_125','kspace_gaussian_50','kspace_gaussian_75','kspace_gaussian_150','kspace_gaussian_100','hr', 'bicubic', 'mean_blur', 'median_blur','hamming', 'hanning']   
 augment: False
 normalize: True
 
 #training settings
 num_epochs: 3505
-n_freq: 20 # model checkpoint saving frequency
+n_freq: 50 # model checkpoint saving frequency
 train_batch_size: 128
 seed: 547
 
@@ -46,11 +45,11 @@ diff_aug: 'None'
 apply_sigmoid: False
 
 
-#optimizer for generator 
-lr: 0.0005
+#optimizer for discriminator 
+lr: 0.00002
 optimizer_type: 'adam'
 lr_decay_factor: 0.98
-optimizer_betas: (0.5, 0.999)
+optimizer_betas: (0.999, 0.999)
 lr_schedular_step: 200
 
 

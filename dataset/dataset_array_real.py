@@ -7,7 +7,7 @@ import cv2
 import random
 from .dataset_utils import prepare_lr_image
 import pickle
-
+import nibabel as nib
 # dictionary_path = '../../model_bias_experiment/mri_dataset_50/lr_hr_dictionary.pkl'
 
 
@@ -18,39 +18,103 @@ def read_dictionary(dictionary_path= ''):
 
 
 class MRIDataset(Dataset):
-    def __init__(self, label_dir, input_dir, lr_patch_size= 100, dictionary_path = '../../model_bias_experiment/mri_dataset_50/lr_hr_dictionary.pkl', transform=None, scale_factor = 2,patch_size = None, augment= False, normalize=True, upsample_image=True):
+    def __init__(self, label_dir, input_dir,axis=2, lr_patch_size= 100, dictionary_path = '../../model_bias_experiment/mri_dataset_50/lr_hr_dictionary.pkl', transform=None, scale_factor = 2,patch_size = None, augment= False, normalize=True, upsample_image=True):
         
         self.label_dir = label_dir
         self.input_dir = input_dir
         self.transform = transform
+
         self.dictionary_path = dictionary_path
         self.lr_patch_size = lr_patch_size
-        self.image_dictionary = read_dictionary(self.dictionary_path)
+
+        self.image_dictionary = read_dictionary(self.dictionary_path)  # ditionary of lr:hr
         # print("length of dictionary", len(self.image_dictionary))
-        self.prepare_list()
+    
+        self.hr_array , self.lr_array, self.index_dictionary =  self.prepare_array(labels_array_dir=self.label_dir, inputs_array_dir=self.input_dir)
+        self.hr_image_index, self.lr_image_index = self.prepare_index()
+
+        # print("hr array shape", self.hr_array.shape)
+        # print("lr array shape", self.lr_array.shape)
+
+        # quit();
+
         self.upsample_image = upsample_image
+
+        self.axis = axis
 
         self.patch_size = patch_size
         self.scale_factor = scale_factor
 
         self.normalize = normalize
         self.augment = augment
-        self.length_of_label_image =  len(self.labels)
-        self.length_of_input_image =  len(self.inputs)
+        
+        self.length_of_label_image =  len(self.image_dictionary)
+        self.length_of_input_image =  len(self.image_dictionary)
 
-        self.labels_list = self.labels
-        self.input_list = self.inputs
+        # print('The shape of HR array', self.hr_array.shape)
+        # print('The shape of LR array', self.lr_array.shape)
+
+        print("length of dataset", len(self.hr_image_index))
     
-    def prepare_list(self):
-        self.inputs = []
-        self.labels = []
-        for key,value in self.image_dictionary.items():
-            self.inputs.append(key)
-            self.labels.append(value)
+    def prepare_index(self):
+        hr_image_index = []
+        lr_image_index = []
+        for key, value in self.image_dictionary.items():
+            lr_index = int(key.split('_')[4].split('.')[0])
+            hr_index = int(value.split('_')[4].split('.')[0])
 
+            multiplier = int(self.index_dictionary[key.split('_')[1]] )
+
+            # print(key.split('_')[1], multiplier)
+
+            lr_index = lr_index + (multiplier*152)
+            hr_index = hr_index + (multiplier*304)
+            hr_image_index.append(hr_index)
+            lr_image_index.append(lr_index)
+            print(lr_index, hr_index)
+        return hr_image_index, lr_image_index
+
+    def prepare_array(self, labels_array_dir, inputs_array_dir):
+        labels_list = os.listdir(labels_array_dir)
+        input_list = os.listdir(inputs_array_dir)
+
+        hr_array_full = [[[]]]
+        lr_array_full = [[[]]]
+        index_dictionary = {}
+        count = 0
+        for index,(file_label_array,file_input_array)  in enumerate(zip(labels_list, input_list)):
+            if file_label_array == 'f4_25.nii':
+                pass
+            else:
+                label_file_path =  os.path.join(labels_array_dir, file_label_array)
+                single_label_array = self.read_array(label_file_path)
+                single_input_array =  self.read_array(os.path.join(inputs_array_dir, file_input_array) )
+
+                print(single_input_array.shape)
+                print(single_label_array.shape)
+                print(count, file_label_array)
+                if index == 0:
+                    hr_array_full = single_label_array
+                    lr_array_full = single_input_array
+                else:
+                    hr_array_full =  np.concatenate((hr_array_full, single_label_array), axis=2)
+                    lr_array_full =  np.concatenate((lr_array_full, single_input_array), axis=2)
+                
+                index_dictionary[file_label_array.split('_')[0]] =  count
+                count +=1
+
+        return hr_array_full, lr_array_full, index_dictionary
+
+    def read_array(self, file_path):
+        img = nib.load(file_path)
+        affine_mat=img.affine
+        hdr = img.header
+        data = img.get_fdata()
+        data_norm = data
+        return data_norm
 
     def __len__(self):
-        return len(self.inputs)
+        return len(self.hr_image_index)
 
     def create_patch(self,img, patch_size):
         height, width = img.shape
@@ -92,15 +156,17 @@ class MRIDataset(Dataset):
         
     def __getitem__(self, index):
 
-        label_path = os.path.join(self.label_dir, self.labels_list[index])
-        input_path = os.path.join(self.input_dir,self.input_list[index])
+        hr_index = self.hr_image_index[index]
+        lr_index = self.lr_image_index[index]
 
-        #read hr image
-        hr_image = cv2.imread(label_path, cv2.IMREAD_UNCHANGED)
-        lr_image = cv2.imread(input_path, cv2.IMREAD_UNCHANGED)
+        hr_image =  self.hr_array[:,:,hr_index]
+        lr_image =  self.lr_array[:,:,lr_index]
 
         # print("hr image shape", hr_image.shape)
         # print("lr image shape", lr_image.shape)
+
+        # print("hr index", hr_index)
+        # print("lr index", lr_index)
 
         if self.upsample_image:
             x, y = hr_image.shape
@@ -113,14 +179,9 @@ class MRIDataset(Dataset):
 
         #create hr patch
         if self.patch_size is not None:
-            # hr_image = self.create_patch(hr_image, self.lr_patch_size*self.scale_factor)
-            # lr_image = self.create_patch(lr_image, self.lr_patch_size)
             lr_image, hr_image = self.create_patch_lr_hr(img_hr=hr_image, img_lr= lr_image, patch_size= self.lr_patch_size)
 
-        # if self.augment:
-        #     hr_image = self.augment_image(hr_image,True,True)
-        #     lr_image = self.augment_image(lr_image,True,True)
-
+    
         if self.upsample_image:
             pass
         else:
@@ -132,6 +193,8 @@ class MRIDataset(Dataset):
             # print("lr and hr image minmax", lr_image.min(), lr_image.max(), hr_image.min(), hr_image.max())
             lr_image = min_max_normalize(lr_image)
             hr_image = min_max_normalize(hr_image)
+            # print("lr and hr image minmax", lr_image.min(), lr_image.max(), hr_image.min(), hr_image.max())
+
 
         hr_image = torch.from_numpy(hr_image)
         lr_image = torch.from_numpy(lr_image)
