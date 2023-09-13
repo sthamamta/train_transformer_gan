@@ -24,6 +24,7 @@ class TVRegularizer(nn.Module):
         N, C, H, W = images.size()
         loss = torch.sum(torch.pow(images[:, :, :H - 1, :] - images[:, :, 1:, :], 2))
         loss += torch.sum(torch.pow(images[:, :, :, :W - 1] - images[:, :, :, 1:], 2)) 
+        print("tv regularizer loss is", loss)
         return loss
 
 

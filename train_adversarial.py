@@ -82,7 +82,7 @@ if __name__ == "__main__":
     '''get the configuration file'''
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', help="configuration file *.yml", type=str, required=False, 
-    default='train_config_yaml/standard_train_mixed_dataset_array.yaml')
+    default='train_config_yaml/array_yaml/standard_train_real_dataset_array.yaml')
     sys.argv = ['-f']
     opt   = parser.parse_known_args()[0]
 
@@ -135,30 +135,31 @@ if __name__ == "__main__":
     #                 normalize = opt.normalize)
 
     # For real dataset loaded as array
-    # opt.train_dataset = MRIDataset(
-    #                 label_dir = opt.train_label_path,  
-    #                 input_dir = opt.train_input_path,
-    #                 lr_patch_size= opt.lr_patch_size,
-    #                 scale_factor = opt.factor,
-    #                 dictionary_path = opt.train_dictionary_path,
-    #                 patch_size = opt.patch_size,
-    #                 augment = opt.augment,
-    #                 normalize = opt.normalize,
-    #                 upsample_image= opt.upsample_image)
-
-
-    #For mixed dataset loaded as array
     opt.train_dataset = MRIDataset(
-                    label_dir = opt.train_label_dir,  
-                    input_dir = opt.train_input_dir,
+                    label_dir = opt.train_label_path,  
+                    input_dir = opt.train_input_path,
                     lr_patch_size= opt.lr_patch_size,
                     scale_factor = opt.factor,
-                    downsample_methods=opt.downsample_method,
                     dictionary_path = opt.train_dictionary_path,
                     patch_size = opt.patch_size,
                     augment = opt.augment,
                     normalize = opt.normalize,
                     upsample_image= opt.upsample_image)
+
+   
+
+    #For mixed dataset loaded as array
+    # opt.train_dataset = MRIDataset(
+    #                 label_dir = opt.train_label_dir,  
+    #                 input_dir = opt.train_input_dir,
+    #                 lr_patch_size= opt.lr_patch_size,
+    #                 scale_factor = opt.factor,
+    #                 downsample_methods=opt.downsample_method,
+    #                 dictionary_path = opt.train_dictionary_path,
+    #                 patch_size = opt.patch_size,
+    #                 augment = opt.augment,
+    #                 normalize = opt.normalize,
+    #                 upsample_image= opt.upsample_image)
 
     # opt.train_dataloader = torch.utils.data.DataLoader(opt.train_dataset, batch_size = opt.train_batch_size,shuffle=True,
     # num_workers=4,pin_memory=False,drop_last=False)

@@ -6,7 +6,8 @@ import torch
 import torch.nn as nn
 
 
-LossOutput = namedtuple("LossOutput", ["relu1_2", "relu2_2", "relu3_3", "relu4_3"])
+# LossOutput = namedtuple("LossOutput", ["relu1_2", "relu2_2", "relu3_3", "relu4_3"])
+LossOutput = namedtuple("LossOutput", ["relu3_3", "relu4_3"])
 
 
 def gram_matrix(y):
@@ -18,19 +19,21 @@ def gram_matrix(y):
 
 
 class ContentAndStyleLoss(nn.Module):
-  def __init__(self, style_weight =10000.0,content_weight=1.0,feature_model=None,opt=None):
+  def __init__(self, style=False, content=False, style_weight=1.0, content_weight=1.0, device=None):
     super().__init__()
     self.style_weight = style_weight
     self.content_weight = content_weight
 
-    if feature_model:
-      self.feature_model = feature_model
-    else:
-      self.feature_model = vgg.vgg16(pretrained=True)
+    self.style = style
+    self.content = content
+    self.device = device
+
+    
+    self.feature_model = vgg.vgg16(pretrained=True).to(device=self.device)
       
     self.feature_model.eval()
 
-    self.apply_feature = ApplyFeature(model=feature_model)
+    self.apply_feature = ApplyFeature(model=self.feature_model)
     self.mse = nn.MSELoss()
 
   def content_loss(self,images_features,labels_features):
@@ -48,7 +51,8 @@ class ContentAndStyleLoss(nn.Module):
       gram_s = gram_labels[i]
       gram_y = gram_images[i]
       style_loss += self.mse(gram_y,gram_s.expand_as(gram_y))
-    return self.style_weight*style_loss
+    # return self.style_weight*style_loss
+    return style_loss
 
   def __call__(self, outputs,labels):
     outputs_features =  self.apply_feature(outputs)
@@ -56,31 +60,36 @@ class ContentAndStyleLoss(nn.Module):
 
     total_loss = 0
 
-    if self.content_loss:
+    if self.content:
         content_loss = self.content_loss(outputs_features,labels_features)
         total_loss += content_loss
-    if self.style_loss:
+        print("Content loss is", content_loss)
+    if self.style:
         style_loss = self.style_loss(outputs_features,labels_features)
         total_loss += style_loss
-        
+        print("style  loss is", style_loss)
+        print("****************************************************")
     return total_loss
 
 
 class ApplyFeature(nn.Module):
-    def __init__(self, model= None, device=None):
+    def __init__(self, model= None):
         super(ApplyFeature, self).__init__()
        
-        self. vgg_model = model
+        self.vgg_model = model
         
         self.vgg_layers = self.vgg_model.features
         self.layer_name_mapping = {
-            '3': "relu1_2",
-            '8': "relu2_2",
+            # '3': "relu1_2",
+            # '8': "relu2_2",
             '15': "relu3_3",
             '22': "relu4_3"
         }
     
     def forward(self, x):
+        print(x.shape)
+        x = x.expand(-1, 3, -1, -1)
+        print(x.shape)
         output = {}
         for name, module in self.vgg_layers._modules.items():
             x = module(x)

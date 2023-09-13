@@ -8,6 +8,7 @@ from torch.optim.lr_scheduler import StepLR
 from loss.laplacian_pyramid_loss import LaplacianPyramidLoss
 from loss.tv_regularizer import TVRegularizer
 from loss.rank_loss import RankLoss
+from loss.content_and_style_loss import ContentAndStyleLoss
 
 
 def forward_chop(model, x, shave=10, min_size=60000, scale=2):
@@ -53,35 +54,6 @@ def forward_chop(model, x, shave=10, min_size=60000, scale=2):
 
 
 
-# def save_50_micron_train_example( model = None, epoch=20, plot_dir= 'example_plot'):
-
-#     image_path = 'lr_f1_160_z_75.png'
-#     images = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
-#     images = images/255.
-
-#     images = torch.from_numpy(images).float().unsqueeze(0).unsqueeze(0)
-#     print("shape of images is", images.shape)
-
-#     device = next(model.parameters()).device
-#     images = images.to(device)
-
-#     with torch.no_grad():
-#         out = forward_chop(model, images) #model(im_input)
-#         torch.cuda.synchronize()
-
-#     # input_image =  images.squeeze().cpu().numpy().astype('float')
-#     output_image =  out.detach().squeeze().cpu().numpy().astype('float')
-
-#     output_image = (output_image*255).astype('uint8')
-
-
-#     image_name = 'image_plot_'+str(epoch)+'.png'
-#     image_path = os.path.join(plot_dir, image_name)
-
-#     if not os.path.exists(plot_dir):
-#         os.makedirs(plot_dir)
-
-#     cv2.imwrite(image_path, output_image)
 
 class Trainer(object):
 
@@ -189,6 +161,19 @@ class Trainer(object):
                 print("Using Ranker Loss")
                 self.gen_losses['ranker_loss'] = RankLoss(checkpoint_path=self.args.ranker_checkpoint_path, device=self.device)
                 self.generator_loss_key_list.append('ranker_loss')
+            elif loss in ['style_loss']:
+                print("using style loss")
+                self.gen_losses['style_loss'] = ContentAndStyleLoss(style=True, content=False, device=self.args.device)
+                self.generator_loss_key_list.append('style_loss')
+            elif loss in ['content_loss']:
+                print("using content loss")
+                self.gen_losses['content_loss'] = ContentAndStyleLoss(style=False, content=True, device=self.args.device)
+                self.generator_loss_key_list.append('content_loss')
+            elif loss in ['style_content_loss','content_style_loss']: #in order to prevent feature extraction two times seperately
+                print("using style and content loss together")
+                self.gen_losses['content_style_loss'] = ContentAndStyleLoss(style=True, content=True, style_weight=self.args.style_loss_weight, content_weight=self.args.content_loss_weight, device=self.args.device)
+                self.generator_loss_key_list.append('content_style_loss')
+
 
     def val_epoch(self):
         self.G.eval()
